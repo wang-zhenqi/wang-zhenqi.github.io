@@ -3,7 +3,7 @@
 blog_theme: light # Or use dark
 name: Chalk
 paginate: 25
-url: https://wang-zhenqi.github.io
+url: http://chalk.nielsenramon.com
 
 
 # Optional settings
@@ -17,13 +17,13 @@ scrollappear_enabled: true # Change to false to disable
 tag_nav_enabled: false # Change to true if you wish to show an additional 'tag-list' navigation below the header
 theme_toggle: false # Change to true if you wish to show an icon in the navigation for dynamic theme toggling
 social:
-  dribbble: # Add your Dribbble handle
+  dribbble: nielsenramon # Add your Dribbble handle
   facebook: # Add your Facebook handle
   flickr: # Add your Flickr handle
-  github: wang-zhenqi # Add your GitHub handle
+  github: nielsenramon # Add your GitHub handle
   linkedin: # Add your LinkedIn handle
-  twitter:  # Add your Twitter handle
-  email: dreamingwzq@gmail.com # Add your Email address
+  twitter: nielsenramon # Add your Twitter handle
+  email: # Add your Email address
   bitcoin: # Add your Bitcoin link or address
   ethereum: # Add your Ethereum link or address
   gitlab: # Add your GitLab handle
@@ -48,11 +48,11 @@ assets:
     css: { autoprefixer: {}}
     img: { optim: {}}
   source_maps: false
-  # sources:
-    # - _assets/icons
-    # - _assets/javascripts
-    # - _assets/stylesheets
-    # - _assets/yarn
+  sources:
+    - _assets/icons
+    - _assets/javascripts
+    - _assets/stylesheets
+    - _assets/yarn
 collections:
   my_tags:
     output: true
