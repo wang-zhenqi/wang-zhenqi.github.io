@@ -1,37 +1,15 @@
-## Welcome to GitHub Pages
+# Welcome to my site!
 
-You can use the [editor on GitHub](https://github.com/Dreamingwzq/zhenqi.github.io/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+Here is a little space of my writing collections. I'll write and share some articles, short essays and experiances about my working and learning processes.
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+Most of the content would be in English or bilingual, because software engineering has a lot of English resources out there which I can reference or internalize in convenience. It can save me some time.
 
-### Markdown
+I'll try my best to make the content meaningful and well-organized, although I'm still new to Github Pages.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+Hope you can find something useful from this site.
 
-```markdown
-Syntax highlighted code block
+Enjoy reading!
 
-# Header 1
-## Header 2
-### Header 3
+# Catolog
 
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/Dreamingwzq/zhenqi.github.io/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://help.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
+## AWS Data Analytics Specialty exam
