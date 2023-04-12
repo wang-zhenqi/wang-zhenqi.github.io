@@ -1,1 +1,16 @@
+# Global
+*.DS_Store
+Desktop.ini
+Thumbs.db
 .tool-versions
+
+# Project
+!.keep
+*.sass-cache
+/_assets/yarn/
+/_site/
+/.jekyll-cache/
+Gemfile.lock
+package-lock.json
+yarn.lock
+.idea
