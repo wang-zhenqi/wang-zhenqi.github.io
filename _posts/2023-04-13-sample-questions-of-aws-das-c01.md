@@ -1,5 +1,5 @@
 ---
-layout: articles_by_tag
+layout: post
 title: "Sample questions and answers to the DAS-C01"
 description: "Here I collect some questions from other resources, answering them as clear as possible. Hope it can be of help to those who also want to try this certification."
 tags: [aws, das-c01, reference]
