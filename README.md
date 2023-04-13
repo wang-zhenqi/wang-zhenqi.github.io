@@ -10,6 +10,3 @@ Hope you can find something useful from this site.
 
 Enjoy reading!
 
-# Catolog
-
-## AWS Data Analytics Specialty exam
