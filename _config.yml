@@ -1,7 +1,7 @@
 # Mandatory settings
 
 blog_theme: light # Or use dark
-name: Zhenqi DE 博客
+name: Why does it work?
 paginate: 25
 url: https://wang-zhenqi.github.io
 
