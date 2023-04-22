@@ -11,10 +11,8 @@ The name of this site - "Why does it work?" - is inspired by a widespread joke a
 
 ![it-works-why](https://zhenqi-imagebed.s3.ap-east-1.amazonaws.com/uploaded_date=2023-04/it-works-why-f0a557cee9da62d2331eebbdd962e8fb.png)
 
-Most of the content would be in English or bilingual, because software engineering has a lot of English resources out there which I can reference or internalize in convenience. It can save me some time.
+The content would be in Chinese, English or bilingual, it's not likely to have translations of an article.
 
-I'll try my best to make the content meaningful and well-organized, although I'm still new to Github Pages.
-
-Hope you can find something useful from this site.
+I'll try my best to make the content meaningful and well-organized, hope you can find something useful from this site.
 
 Enjoy reading!
