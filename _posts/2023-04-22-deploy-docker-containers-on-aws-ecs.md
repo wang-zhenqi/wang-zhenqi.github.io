@@ -40,20 +40,20 @@ tags: [aws, ecs, docker, how-to-guide]
 例如容器间的依赖关系可以定义为：
 ```json
 {
-	...
-	"containerDefinitions": [
-		{
-			...
-			"dependsOn": [
-				{
-					"containerName": "${name_of_a_container}",
-					"condition": "[START|STOP|SUCCESS|HEALTHY]"
-				}
-			],
-			...
-		}
-	],
-	...
+    ...
+    "containerDefinitions": [
+        {
+            ...
+            "dependsOn": [
+                {
+                    "containerName": "${name_of_a_container}",
+                    "condition": "[START|STOP|SUCCESS|HEALTHY]"
+                }
+            ],
+            ...
+        }
+    ],
+    ...
 }
 ```
 
