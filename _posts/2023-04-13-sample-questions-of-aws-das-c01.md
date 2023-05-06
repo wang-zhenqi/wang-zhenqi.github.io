@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "Sample questions and answers to the DAS-C01"
-description: "Here I collect some questions from other resources, answering them as clear as possible. Hope it can be of help to those who also want to try this certification."
+title: "AWS Data Analytics Specialty (DAS-C01) 认证例题整理"
+description: "这篇文章里包含了笔者整理的关于 DAS-C01 认证的样题，很多题目是从网站、论坛上搜集来的。答案是笔者通过查阅资料并结合他人解题思路后得出的，不能保证正确性。读者需认真思考，仔细辨别，欢迎提出不同意见。"
 tags: [aws, das-c01, reference]
 ---
 
