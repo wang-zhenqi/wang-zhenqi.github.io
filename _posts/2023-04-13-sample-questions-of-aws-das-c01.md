@@ -529,7 +529,7 @@ Redshift 共有 4 种分布形式：
 `#security` `#permission` `#iam`
 
 Three teams of data analysts use `Apache Hive on an Amazon EMR cluster with the EMR File System` (EMRFS) to query data stored within each team's Amazon  
-S3 bucket. The EMR cluster has `Kerberos enabled` and is configured to `authenticate users from the corporate Active Directory`. The data is highly sensitive, so access must be limited to the members of each team.  
+S3 bucket. The EMR cluster has `Kerberos enabled` and is configured to `authenticate users from the corporate Active Directory`. The data is highly sensitive, so access must be limited to the members of each team.
 Which steps will satisfy the security requirements?
 
 A. For the EMR cluster Amazon EC2 instances, create a service role that grants no access to Amazon S3. Create three additional IAM roles, each granting access to each team's specific bucket. Add the additional IAM roles to the cluster's EMR role for the EC2 trust policy. Create a security configuration mapping for the additional IAM roles to Active Directory user groups for each team.
@@ -617,3 +617,44 @@ D. Use an AWS Glue ETL job to partition and convert the data into a row-based d
 对于运算成本来说，扫描的数据量越少，Athena 上的花费就越少。因此同样要选择列式存储和压缩的方式。
 
 题目中还有一个对比的点：存储类型的更改是在文件生成的一段时间后还是在最后一次使用文件的一段时间之后。答案是在文件生成后，因为按题中描述，不常访问的数据也是有被访问到的可能性的。如果按照最后一次使用的时间来算的话，很可能好不容易等到快要 5 年了，结果这一天该数据被访问了，于是又要再等 5 年。
+
+
+# Q024
+
+`#kinesis-data-streams` `#kinesis-data-firehose` `#lambda` `#processing` 
+
+An energy company collects voltage data in `real time` from sensors that are attached to buildings. The company wants to `receive notifications` when a sequence of two voltage drops is detected within 10 minutes of a sudden voltage increase at the same building. All notifications must be delivered as quickly as possible. The system must be `highly available`. The company needs a solution that will `automatically scale` when this monitoring feature is implemented in other cities. The notification system is `subscribed to an Amazon Simple Notification Service` (Amazon SNS) topic for remediation.  
+Which solution will meet these requirements?  
+
+A. Create an Amazon Managed Streaming for Apache Kafka cluster to ingest the data. Use an Apache Spark Streaming with Apache Kafka consumer API in an automatically scaled Amazon EMR cluster to process the incoming data. Use the Spark Streaming application to detect the known event sequence and send the SNS message.
+
+B. Create a REST-based web service by using Amazon API Gateway in front of an AWS Lambda function. Create an Amazon RDS for PostgreSQL database with sufficient Provisioned IOPS to meet current demand. Configure the Lambda function to store incoming events in the RDS for PostgreSQL database, query the latest data to detect the known event sequence, and send the SNS message.
+
+C. Create an Amazon Kinesis Data Firehose delivery stream to capture the incoming sensor data. Use an AWS Lambda transformation function to detect the known event sequence and send the SNS message.
+
+D. Create an Amazon Kinesis data stream to capture the incoming sensor data. Create another stream for notifications. Set up AWS Application Auto Scaling on both streams. Create an Amazon Kinesis Data Analytics for Java application to detect the known event sequence, and add a message to the message stream. Configure an AWS Lambda function to poll the message stream and publish to the SNS topic.
+
+## Answer - A
+
+这道题涉及到了很多 AWS 服务中比较少见的特性，答案之间的争论也比较多，需要重点注意一下这道题。
+
+首先来梳理一下题目中要达成的目标——建立一套数据处理和分析的系统：
+1. 数据来源：安装在各个建筑上的传感器，流数据
+2. 分析方式：在 10 分钟的滑动窗口内，判断是否出现某种特定事件
+3. 结果处理：出现该事件时，尽快触发 SNS 进行消息推送
+4. 系统要求：高可用，资源自动伸缩
+
+接下来一项项地分析实现方案。
+
+从数据来源看，能够接收流数据的 AWS 服务有 Managed Streaming for Apache Kafka (MSK)，Kinesis Data Streams (KDS)，Kinesis Data Firehose，自己编写的运行在 EMR 上的代码，以及选项 B 中提到的利用 Amazon API Gateway 创建 RESTful API，通过 API 调用使 Lambda 将数据存储至 RDS。这里没有办法排除掉选项。
+
+从分析方式来看，可以排除掉用 Lambda 直接进行分析的选项（选项 C），这是因为 Lambda 是无状态的，无法单独执行滑动窗口的数据分析（注：Lambda 可以对滚动窗口内的数据进行分析：[Using AWS Lambda with Amazon Kinesis - Time windows](https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html#services-kinesis-windows)）。另一方面，用 RDS 上的 PostgreSQL 来进行数据分析是 RDS 用法的一个反模式，即不推荐这样做，流数据的处理有更好用的工具。因此也排除选项 B。
+
+从结果处理的方式来看，在发现该事件发生时，要尽快利用 SNS 消息通知到用户。那么选项 D 中提到的用 Lambda 方法去轮询消息流的方式是不能保证尽快发送通知的。
+
+从系统要求来看，选项中提到的服务基本都是高可用的，尤其是 Lambda、Kinesis 系列，因为他们是无服务的，可用性很高。而 EMR 则需要手动配置，利用主副节点来提高可用性，这也是选项 A 有争议的原因之一。至于资源的自动伸缩，EMR、RDS、Lambda 都内置了自动伸缩的功能，Kinesis 需要额外的配置，才能使用 AWS  Application Auto Scaling 服务（参考 [Scale Amazon Kinesis Data Streams with AWS Application Auto Scaling](https://aws.amazon.com/blogs/big-data/scaling-amazon-kinesis-data-streams-with-aws-application-auto-scaling/)）
+
+ 通过以上分析已经可以选出答案了。最后再简单讨论一下题目中的几个服务。
+
+1. Kinesis Analytics：的确可以进行滑动窗口内的数据分析，这是它的使用场景之一。如果不是分出来两个流并且还要用轮询的方式来获取通知，那么选项 D 的方式也是可行的。
+2. KDS 与 MSK：这两个服务都适用于流数据的接入。区别在于 KDS 是全托管（Fully-managed）且无服务（Serverless）的，用户不需要关心资源的分配、幕后程序的运行机制，只需调用 AWS 接口即可；而 MSK 是由 AWS 托管的，运行在 EC2 实例上的 Kafka 应用，需要用户事先进行配置。KDS 依赖于 AWS 环境，它的程序只能运行在 AWS 平台上，但 MSK 上的程序是通用的 Kafka 应用，不依赖云平台。
