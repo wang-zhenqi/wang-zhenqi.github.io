@@ -68,7 +68,7 @@ B 和 D 选项是争议比较多的。首先这两种方案都是可实现的，
 
 另外：题中提到的 EMRFS consistent view 主要是为了提高数据访问的一致性，利用 DynamoDB 存储元数据来追踪 EMRFS 上的数据，这样还会产生额外的 DynamoDB 的费用。由于 S3 自 2020-12-01 起添加了 strongly consistency 的特性，因此现在已经不再需要 EMRFS consistent view 了，从 2023-01-01 开始，新的 EMR 版本将不再将其作为配置选项，这样还能节约成本。（参考：[https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-plan-consistent-view.html](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-plan-consistent-view.html)）
 
-# Q004
+## Q004
 
 `#kinesis-data-streams` `#kinesis-data-firehose` `#quicksight` `#opensearch` `#log-analysis`
 
@@ -90,7 +90,7 @@ B、C 选项中用词不够准确，争议也源自于此。KPL agent 不是在 
 D 选项中，CloudWatch Subscription 确实可以实时地获取应用程序日志中的信息，可以自定义 metrics 来进行监测，也可以将监测结果传到 Kinesis Data Streams。但是 KDS 的数据不能直接进入 OpenSearch，只有 Kinesis Firehose 才可以。
 因此这道题的答案我更倾向于 C 选项。
 
-# Q005
+## Q005
 
 `#glue` `#optimization`
 
@@ -105,13 +105,13 @@ C. Enable job metrics in AWS Glue to estimate the number of data processing uni
 
 D. Enable job bookmarks in AWS Glue to estimate the number of data processing units (DPUs). Based on the profiled metrics, increase the value of the num- executors job parameter.
 
-## Answer - B
+### Answer - B
 
 首先区分一下 job bookmarks 和 job metrics：前者是对已处理的数据做的记录，相当于是 checkpoint，这样在任务重复执行的时候就可以从记录点开始，而不用从头处理；job metrics 是对任务运行状况的监测，例如 CPU、内存使用率，哪个 excecutor 一直被占用，运行时长，读写量等等。由此可以看出，针对题中的问题，应该利用 job metrics 来判断所需 DPU 的数量。由此排除选项 A、D。
 
 选项 B、C 中提到的两个参数，`spark.yarn.executor.memoryOverhead` 指的是 executor 所需的堆外内存的大小。题目里描述到没有报错，说明不是 OOM 的原因，只是因为计算资源不够才导致任务迟迟不能完成，因此应该增加集群的“最大容量”以增加计算资源。
 
-# Q006
+## Q006
 
 `#glue` `#redshift` `#loading-data`
 
@@ -126,7 +126,7 @@ C. Use Apache Spark's DataFrame dropDuplicates() API to eliminate duplicates an
 
 D. Use the AWS Glue ResolveChoice built-in transform to select the most recent value of the column.
 
-## Answer - A
+### Answer - A
 
 首先要说明的是题目中的问题主要是由于 Redshift 不支持 upsert 操作所导致的。解决方案就是用某种方式在更新 Redshift 表时去掉重复记录。
 
@@ -138,7 +138,7 @@ B 选项也是一个可行的方案，但并非最优解。原因和 C 选项一
 
 A 选项是最高效的。首先 Glue 处理的数据只需往 Redshift 上写一次，写入一个临时表。再从目标表中删除临时表中重复的数据，可以用 `DELETE FROM {target_table} USING {staging_table} WHERE {condition}` 的语句。最后直接运行 `INSERT INTO {target_table} SELECT * FROM {staging_table}` 即可。参考文档：[https://aws.amazon.com/premiumsupport/knowledge-center/sql-commands-redshift-glue-job/](https://aws.amazon.com/premiumsupport/knowledge-center/sql-commands-redshift-glue-job/), [https://docs.aws.amazon.com/redshift/latest/dg/merge-examples.html](https://docs.aws.amazon.com/redshift/latest/dg/merge-examples.html)
 
-# Q007
+## Q007
 
 `#kinesis-data-streams` `#athena` `#optimization`
 
@@ -154,7 +154,7 @@ C. Add more memory and CPU capacity to the streaming application.
 
 D. Write the files to multiple S3 buckets.
 
-## Answer - A
+### Answer - A
 
 题目中描述道，Athena 的查询性能是随着时间增加而下降的。这就说明导致性能下降的原因是在程序运行的过程中累积起来的。如果是因为 shard、CPU、memory 等计算、存储资源不够，那么在一开始性能就会不好。
 
@@ -162,7 +162,7 @@ D. Write the files to multiple S3 buckets.
 
 因此解决方案就是将小文件合并成大文件，减少文件数量，降低查询请求次数。故而选 A。参考文档：[https://docs.aws.amazon.com/athena/latest/ug/performance-tuning.html`#performance-tuning-data-size`](https://docs.aws.amazon.com/athena/latest/ug/performance-tuning.html`#performance-tuning-data-size`)
 
-# Q008
+## Q008
 
 `#opensearch` `#optimization`
 
@@ -178,7 +178,7 @@ C. Decrease the number of Amazon ES shards for the index.
 
 D. Increase the number of Amazon ES shards for the index.
 
-## Answer - C
+### Answer - C
 
 这道题纯粹是在考 OpenSearch 中 nodes、shards、index 之间的关系，以及如何按照数据量分配资源。
 
@@ -195,7 +195,7 @@ Shards 太大或者数量太多都会造成性能问题。如果 shards 太大�
 
 那么代入题目中的情景，单一 index，写操作密集，每天固定 1000 GB 的数据（故而 room to grow 可以看作 0），大概需要 `(1000 + 0) * (1 + 0.1) / 50 = 22` 个 shards，题目中用了 1000 个，显然太多了。
 
-# Q009
+## Q009
 
 `#redshift` `#s3` `#architecture`
 
@@ -210,7 +210,7 @@ C. Execute a CREATE TABLE AS SELECT (CTAS) statement to move records that are o
 
 D. Unload all the tables in Amazon Redshift to an Amazon S3 bucket using S3 Intelligent-Tiering. Use AWS Glue to crawl the S3 bucket location to create external tables in an AWS Glue Data Catalog. Create an Amazon EMR cluster using Auto Scaling for any daily analytics needs, and use Amazon Athena for the quarterly reports, with both using the same AWS Glue Data Catalog.
 
-## Answer - A
+### Answer - A
 
 这里首先要注意的是两个时间长度：大多数查询需要用到最近 13 个月的数据，每季度的报告需要查询到过去 7 年的数据。前者说明近 13 个月的数据是频繁查询的，需要能够快速访问到；后者说明过去 7 年的数据都需要保留，但因为是每季度查询，因此访问速度可以慢一些。题目中说到集群的空间将在 4 个月内就不够用了，也就是说集群的空间大概在 `2TB * 120 = 240TB` 左右。从 Redshift 集群机器类型的配置可知，即使是 8XL 的 dense storage 机器，也需要 `240TB / 16TB = 15` 个计算节点。可以预见，如果继续将数据放在 Redshift 上，会产生高昂的费用。因此 B 选项（创建快照，使用 dense storage）是不可行的。
 
@@ -220,7 +220,7 @@ D. Unload all the tables in Amazon Redshift to an Amazon S3 bucket using S3 Int
 
 选项 D 和选项 A 的区别在于，选项 D 舍弃了 Redshift，把所有的数据都放在了 S3 上，利用 EMR 来进行数据分析，再用 Athena 来查询结果。这样依赖增加了管理的难度，没有利用到 Redshift 数据仓库的特性。不符合要求。
 
-# Q010
+## Q010
 
 `#glue`
 
@@ -235,13 +235,13 @@ C. Using the AWS CLI, modify the execution schedule of the AWS Glue crawler fro
 
 D. Run the AWS Glue crawler from an AWS Lambda function triggered by an S3:ObjectCreated:\* event notification on the S3 bucket.
 
-## Answer - D
+### Answer - D
 
 从题目描述中可以看出，导致数据过期的原因是 Glue crawler 的运行间隔太长，导致有时拥有新的 schema 的数据接入后，schema 没能及时更新。如果采用缩短 crawler 的运行间隔的方式，只要运行间隔和接入周期是匹配的，那么对于周期性接入数据的情景就是有效的。
 
 然而题目中的场景是接入数据是随机的，因此 crawler 就需要由事件触发运行。选项 B、C 都仅仅减小了运行间隔，仍然有可能出现 schema 更新不及时的情况。选项 A 的方案对于解决问题没有帮助，因为 Redshift Spectrum 同样依赖于 Glue data catalog 里记录的 schema，一样会遇到更新不及时的问题。因此答案为 D。
 
-# Q011
+## Q011
 
 `#S3` `#optimization`
 
@@ -258,7 +258,7 @@ C. In Apache Parquet partitioned by source IP and sorted by date
 
 D. In compressed nested JSON partitioned by source IP and sorted by date
 
-## Answer - A
+### Answer - A
 
 这道题主要是在对比数据文件的类型以及分区排序的不同对于查询性能的影响。首先可以在题目限定之外对比一下不同选择的优劣。
 
@@ -273,9 +273,9 @@ D. In compressed nested JSON partitioned by source IP and sorted by date
 
 回到题目中来，按其描述，每天会有 100 亿条数据，存储如此多的数据需要更好的压缩水平，因此行式存储是优于列式存储的和半结构化存储的，排除选项 B、D。另外，数据按小时传入 S3 bucket 并进行分析，还需分析 2 年前的数据，这说明按时间分区会使查询最为容易（最快定位，最少扫描）。如果按照 source IP 分区，那么对于同一天的数据，有多少个 source IP，一次查询就要扫描多少个分区，速度会很慢。而按照 source IP 分区会有利于数据过滤以及连接操作，因此选 A。
 
-# Q012
+## Q012
 
-`#tags`
+`#security` `#redshift` `#hardware-security-module`
 
 A banking company is currently using an Amazon Redshift cluster with dense storage (DS) nodes to store sensitive data. An audit found that the cluster is unencrypted. Compliance requirements state that a database with `sensitive data must be encrypted through a hardware security module` (HSM) with automated key rotation.  
 Which combination of steps is required to achieve compliance? (Choose two.)
@@ -290,13 +290,13 @@ D. Enable HSM with key rotation through the AWS CLI.
 
 E. Enable Elliptic Curve Diffie-Hellman Ephemeral (ECDHE) encryption in the HSM.
 
-## Answer - AC
+### Answer - AC
 
 这道题考察 Redshift 的 HSM 的应用。题中要求给现有的未加密的 cluster 添加 HSM 加密功能。首先，HSM 需要与 Redshift 建立可信连接，这就需要用户拥有证书，选项 A 正确；其次，HSM 只能在创建集群的时候设置，因此只能新建一个支持 HSM 的集群，然后把现有的集群迁移过来，选项 C 正确，排除选项 B、D。参考：[Amazon Redshift database encryption](https://docs.aws.amazon.com/redshift/latest/mgmt/working-with-db-encryption.html)
 
-选项 E 只是一个在非安全通信信道上进行密钥交换的机制，与给集群添加 HSM 功能没有关系。参考：[Elliptic-curve Diffie–Hellman](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman#:~:text=Elliptic%2Dcurve%20Diffie%E2%80%93Hellman%20(,or%20to%20derive%20another%20key.)
+选项 E 只是一个在非安全通信信道上进行密钥交换的机制，与给集群添加 HSM 功能没有关系。参考：[Elliptic-curve Diffie–Hellman](https://en.wikipedia.org/wiki/Elliptic-curve_Diffie%E2%80%93Hellman)
 
-# Q013
+## Q013
 
 `#glue` `#s3` `#dms`
 
@@ -311,7 +311,7 @@ C. Ingest data into Amazon S3 using AWS DMS. Use AWS Glue to perform data curat
 
 D. Take a full backup of the data store and ship the backup files using AWS Snowball. Upload Snowball data into Amazon S3 and schedule data curation jobs using AWS Batch to prepare the data for ML.
 
-## Answer - C
+### Answer - C
 
 题目中的 SageMake、Direct Connect 其实和这道题的解答没有太大关系。题目中的场景要求的是如何最快速地对 3TB 的本地数据实行 ETL 操作。
 
@@ -328,7 +328,7 @@ D. Take a full backup of the data store and ship the backup files using AWS Sno
 
 再看最后的选项 C，数据仓库的迁移正好是 DMS 的使用场景之一，然后再用 Glue 的 ETL 控制台，可以快速地、可视化地搭建 ETL 任务，对于题目中提到的“mapping, dropping null fields, resolving choice, and splitting fields”等操作，Glue ETL 都提供了现成的模板。同时，Glue 内部也是使用 Spark 来处理数据的，这个选项兼顾了数据处理的速度与开发的速度，因此是最优解。
 
-# Q014
+## Q014
 
 `#quicksight` `#security` `#redshift` `#cross-region-access`
 
@@ -344,11 +344,11 @@ C. Create an Amazon Redshift endpoint connection string with Region information
 
 D. Create a new security group for Amazon Redshift in us-east-1 with an inbound rule authorizing access from the appropriate IP address range for the Amazon QuickSight servers in ap-northeast-1.
 
-## Answer - D
+### Answer - D
 
 关于 QuickSight cross-region access，在 Udemy 的课程里专门有提到，使用 VPC 的方式无法解决 QuickSight 不能跨域访问 Redshift 的问题，解决方案是给 Redshift 添加一个安全组，将 QuickSight 的 IP 范围加入 inbound rule 中，因此选择 D。选项 A 中的“在 ap-northwest-1 区域创建 Redshift 的快照”太过复杂，而且需要额外支出，所以并不合理。参考：[https://docs.aws.amazon.com/quicksight/latest/user/enabling-access-redshift.html](https://docs.aws.amazon.com/quicksight/latest/user/enabling-access-redshift.html)
 
-# Q015
+## Q015
 
 `#redshift` `#redshift-spectrum` `#uncertain-answer`
 
@@ -364,7 +364,7 @@ C. Create an external table using Amazon Redshift Spectrum for the call center 
 
 D. Export the call center data from Amazon Redshift to Amazon EMR using Apache Sqoop. Perform the join with Apache Hive.
 
-## Answer - C?
+### Answer - C?
 
 这道题我的感觉是每个选项都不太对，如果一定要选的话，我更倾向于 C。
 
@@ -379,7 +379,7 @@ D. Export the call center data from Amazon Redshift to Amazon EMR using Apache 
 另外再简单说一下 Redshift Spectrum 的机制，它在 S3 和 Redshift 之间加入了一个 Spectrum 层，把数据与运算独立开来（如下图所示）。数据从 S3 上读取，查询操作由 Spectrum 提交到 Redshift leader node，compute nodes 生成运算请求，再由 Spectrum 来执行这些运算，从而不占用 Redshift 计算节点的资源。
 ![Redshift Spectrum Architecture](https://zhenqi-imagebed.s3.ap-east-1.amazonaws.com/uploaded_date=2023-04/redshift-spectrum-e7174970c87f70404f08d42d63ef5796.png)
 
-# Q016
+## Q016
 
 `#quicksight` `#permission`
 
@@ -394,13 +394,13 @@ C. Edit the permissions for the AWS Glue Data Catalog from within the AWS Glue 
 
 D. Edit the permissions for the new S3 bucket from within the S3 console.
 
-## Answer - B
+### Answer - B
 
 这道题比较简单：QuickSight 是从 S3 上读取文件的，现在新添加了一个 S3 bucket，问它要如何在 QuickSight 上显示。这是一个关于 QuickSight 对 S3 bucket 的访问权限的问题，需要在 QuickSight 的控制台里修改对新的 S3 bucket 的访问权限。
 
 另外，SPICE 指的是 Super-fast Parallel In-memory Calculation Engine，QuickSight 连接的数据集可以被导入到 SPICE 中，以提高查询操作的速度，但执行超过 30 分钟也会超时失败。
 
-# Q017
+## Q017
 
 `#kinesis-data-streams` `#kinesis-data-firehose` `#kinesis-analytics` `#amazon-sns`
 
@@ -415,7 +415,7 @@ C. Publish data to two Kinesis data streams. Deploy Kinesis Data Analytics to t
 
 D. Publish data to two Kinesis data streams. Deploy a custom application using the Kinesis Client Library (KCL) to the first stream for analyzing trends, and send notifications using Amazon SNS. Configure Kinesis Data Firehose on the second Kinesis data stream to persist data to an S3 bucket.
 
-## Answer - B
+### Answer - B
 
 这道题主要是考察 Kinesis 的几个组件的用法，题目中描述的是一个比较常见的场景：Kinesis 收集数据、进行分析、将数据存储至 S3、为特定事件发送提醒。题目中要注意的是，存储到 S3 的数据是原始数据，而不是经过分析的数据。
 
@@ -424,7 +424,7 @@ D. Publish data to two Kinesis data streams. Deploy a custom application using 
 
 其中，Kinesis Data Streams 用于收集多个数据源的数据，Kinesis Analytics 和 Kinesis Data Firehose 分别消费 Kinesis Data Streams 中的数据。这是因为一个 Kinesis Data Streams 的数据可以被多个消费者消费，因此也就没有必要创建两个 Kinesis Data Streams 了，排除选项 C、D。至于选项 A，使用 KCL 来分析数据的话，就不能用 “SQL-like” 的查询方式了，因此排除。由以上分析可以得出，这道题应选择 B。
 
-# Q018
+## Q018
 
 `#cross-region-access` `#glue`
 
@@ -440,7 +440,7 @@ C. Enable cross-Region replication for the S3 buckets in us-east-1 to replicate
 
 D. Update AWS Glue resource policies to provide us-east-1 AWS Glue Data Catalog access to us-west-2. Once the catalog in us-west-2 has access to the catalog in us-east-1, run Athena queries in us-west-2.
 
-## Answer - B
+### Answer - B
 
 题中要解决的问题是，多个数据集分别存储在两个区域里，需要在其中某个区域上用 Athena 同时访问到它们。
 
@@ -455,7 +455,7 @@ D. Update AWS Glue resource policies to provide us-east-1 AWS Glue Data Catalog
 
 选项 D 提到了修改一个区域里的 Glue catalog 的 resource policy，以向另一个区域的 Glue catalog 提供访问权限。这个方式也是可行的，它可以让另一个区域的 Glue catalog 获取到该区域的 catalog 的数据，也就是库、表等定义，由此另一区域就可以访问到该区域的 S3 数据。但这个方式要复杂一些，同时需要两套 crawler 分别读取每个区域上的表，花费也会更高一些，因此排除选项 D。
 
-# Q019
+## Q019
 
 `#s3` `#redshift` `#optimization`
 
@@ -470,7 +470,7 @@ C. Split the number of files so they are equal to a multiple of the number of c
 
 D. Apply sharding by breaking up the files so the distkey columns with the same values go to the same file. Gzip and upload the sharded files to Amazon S3. Run the COPY command on the files.
 
-## Answer - B
+### Answer - B
 
 这道题考察的是 Redshift COPY 命令的使用，即如何能够高效地将数据传输至 Redshift 集群。Redshift 使用了 Massive Parallel Processing (MPP)，也就要求处理的数据要尽可能地平均分配到每个任务资源。
 
@@ -486,11 +486,11 @@ Redshift 集群是由一个 Leader node 和多个 Compute nodes 组成的，每�
 
 综上，排除选项 A。
 
-# Q020
+## Q020
 
-`#tags`
+`#redshift`
 
-A large ride-sharing company has` thousands of drivers globally` serving `millions of unique customers every day`. The company has decided to `migrate an existing data mart to Amazon Redshift`. The existing schema includes the following tables.  
+A large ride-sharing company has `thousands of drivers globally` serving `millions of unique customers every day`. The company has decided to `migrate an existing data mart to Amazon Redshift`. The existing schema includes the following tables.  
 ✑ A `trips fact table` for information on completed rides.  
 ✑ A `drivers dimension table` for driver profiles.  
 ✑ A `customers fact table` holding customer profile information.  
@@ -505,7 +505,7 @@ C. Use DISTSTYLE KEY (destination) for the trips table and sort by date. Use DI
 
 D. Use DISTSTYLE EVEN for the drivers table and sort by date. Use DISTSTYLE ALL for both fact tables.
 
-## Answer - C
+### Answer - C
 
 这道题主要考察的是 Redshift 上数据的 distribution style，即如何让数据分布在 Redshift 集群上以达到最优的查询性能。
 
@@ -524,7 +524,7 @@ Redshift 共有 4 种分布形式：
 
 因此这道题选 C。
 
-# Q021
+## Q021
 
 `#security` `#permission` `#iam`
 
@@ -540,7 +540,7 @@ C. For the EMR cluster Amazon EC2 instances, create a service role that grants 
 
 D. For the EMR cluster Amazon EC2 instances, create a service role that grants full access to Amazon S3. Create three additional IAM roles, each granting access to each team's specific bucket. Add the service role for the EMR cluster EC2 instances to the trust polices for the base IAM roles. Create a security configuration mapping for the additional IAM roles to Active Directory user groups for each team.
 
-## Answer - B
+### Answer - B
 
 这道题考察了对 EMR 的权限设置，以保证只给特定的几组成员相应地权限。
 
@@ -561,7 +561,7 @@ D. For the EMR cluster Amazon EC2 instances, create a service role that grants 
 
 这里要注意，EMR 的 Service role 是运行 EMR 的默认角色，它所拥有的权限应该是最小的；每个组的 IAM role 是可以被 assume 的，当使用了这个 IAM role 时就应该能访问到对应的 S3 资源。
 
-# Q022
+## Q022
 
 `#glue` `#athena`
 
@@ -575,7 +575,7 @@ Which combination of components can meet these requirements? (Choose three.)
 - E. Amazon Athena for querying data in Amazon S3 using JDBC drivers
 - F. Amazon EMR with Apache Hive, using an Amazon RDS with MySQL-compatible backed metastore
 
-## Answer - ACE
+### Answer - ACE
 
 根据题目中的描述可以总结出几个需求点：
 
@@ -589,7 +589,7 @@ Which combination of components can meet these requirements? (Choose three.)
 
 综上，操作管理最简单的方案就是选项 A、C、E
 
-# Q023
+## Q023
 
 `#cost-effective` `#s3`
 
@@ -604,7 +604,7 @@ C. Use an AWS Glue ETL job to compress, partition, and convert the data into a 
 
 D. Use an AWS Glue ETL job to partition and convert the data into a row-based data format. Use Athena to query the processed dataset. Configure a lifecycle policy to move the data into the Amazon S3 Standard-Infrequent Access (S3 Standard-IA) storage class 5 years after the object was last accessed. Configure a second lifecycle policy to move the raw data into Amazon S3 Glacier for long-term archival 7 days after the last date the object was accessed.
 
-## Answer - A
+### Answer - A
 
 这道题选项描述得比较复杂，用示意图来表示如下：
 ![das-c01-q023](https://zhenqi-imagebed.s3.ap-east-1.amazonaws.com/uploaded_date=2023-04/das-c01-q023-ba08d447022e5f028ebdeecca3798b05.png)
@@ -618,10 +618,9 @@ D. Use an AWS Glue ETL job to partition and convert the data into a row-based d
 
 题目中还有一个对比的点：存储类型的更改是在文件生成的一段时间后还是在最后一次使用文件的一段时间之后。答案是在文件生成后，因为按题中描述，不常访问的数据也是有被访问到的可能性的。如果按照最后一次使用的时间来算的话，很可能好不容易等到快要 5 年了，结果这一天该数据被访问了，于是又要再等 5 年。
 
+## Q024
 
-# Q024
-
-`#kinesis-data-streams` `#kinesis-data-firehose` `#lambda` `#processing` 
+`#kinesis-data-streams` `#kinesis-data-firehose` `#lambda` `#processing`
 
 An energy company collects voltage data in `real time` from sensors that are attached to buildings. The company wants to `receive notifications` when a sequence of two voltage drops is detected within 10 minutes of a sudden voltage increase at the same building. All notifications must be delivered as quickly as possible. The system must be `highly available`. The company needs a solution that will `automatically scale` when this monitoring feature is implemented in other cities. The notification system is `subscribed to an Amazon Simple Notification Service` (Amazon SNS) topic for remediation.  
 Which solution will meet these requirements?  
@@ -634,11 +633,12 @@ C. Create an Amazon Kinesis Data Firehose delivery stream to capture the incomi
 
 D. Create an Amazon Kinesis data stream to capture the incoming sensor data. Create another stream for notifications. Set up AWS Application Auto Scaling on both streams. Create an Amazon Kinesis Data Analytics for Java application to detect the known event sequence, and add a message to the message stream. Configure an AWS Lambda function to poll the message stream and publish to the SNS topic.
 
-## Answer - A
+### Answer - A
 
 这道题涉及到了很多 AWS 服务中比较少见的特性，答案之间的争论也比较多，需要重点注意一下这道题。
 
 首先来梳理一下题目中要达成的目标——建立一套数据处理和分析的系统：
+
 1. 数据来源：安装在各个建筑上的传感器，流数据
 2. 分析方式：在 10 分钟的滑动窗口内，判断是否出现某种特定事件
 3. 结果处理：出现该事件时，尽快触发 SNS 进行消息推送
@@ -658,3 +658,51 @@ D. Create an Amazon Kinesis data stream to capture the incoming sensor data. Cr
 
 1. Kinesis Analytics：的确可以进行滑动窗口内的数据分析，这是它的使用场景之一。如果不是分出来两个流并且还要用轮询的方式来获取通知，那么选项 D 的方式也是可行的。
 2. KDS 与 MSK：这两个服务都适用于流数据的接入。区别在于 KDS 是全托管（Fully-managed）且无服务（Serverless）的，用户不需要关心资源的分配、幕后程序的运行机制，只需调用 AWS 接口即可；而 MSK 是由 AWS 托管的，运行在 EC2 实例上的 Kafka 应用，需要用户事先进行配置。KDS 依赖于 AWS 环境，它的程序只能运行在 AWS 平台上，但 MSK 上的程序是通用的 Kafka 应用，不依赖云平台。
+
+## Q025
+
+`#kinesis-data-streams` `#kinesis-data-firehose` `#kinesis-analytics`
+
+A media company has a streaming playback application. The company needs to collect and analyze data to provide `near-real-time feedback` on playback issues `within 30 seconds`. The company requires a consumer application to identify playback issues, such as decreased quality during a specified time frame. The data will be streamed in `JSON format`. The `schema can change` over time.  
+Which solution will meet these requirements?  
+
+A. Send the data to Amazon Kinesis Data Firehose with delivery to Amazon S3. Configure an S3 event to invoke an AWS Lambda function to process and analyze the data.
+
+B. Send the data to Amazon Managed Streaming for Apache Kafka. Configure Amazon Kinesis Data Analytics for SQL Application as the consumer application to process and analyze the data.
+
+C. Send the data to Amazon Kinesis Data Firehose with delivery to Amazon S3. Configure Amazon S3 to initiate an event for AWS Lambda to process and analyze the data.
+
+D. Send the data to Amazon Kinesis Data Streams. Configure an Amazon Kinesis Data Analytics for Apache Flink application as the consumer application to process and analyze the data.
+
+### Answer - D
+
+这道题的几个选项分成了两组，A、C 采用了 Firehose + Lambda 的方式，B、D 采用流数据工具 + Kinesis Analytics 的方式。每组的两个选项之间差别都很小。因此分析起来要格外注意。
+
+先说选项 A、C。它们都是利用 Firehose 将数据接入到 S3，再利用 S3 的事件来触发一个 Lambda function，例如每次有新的文件存储到 S3 都会触发 Lambda 来执行分析。但题中所说的 “Configure an S3 event to invoke an AWS Lambda function” 和 “Configure Amazon S3 to initiate an event for AWS Lambda” 在我看来几乎没有什么区别。还好这两个选项都可以排除。原因是 Firehose 在接收数据的时候，首先要将数据缓存起来，当数据量达到 2MB 或者时间达到 60 秒时才会向下游写数据。因此不能满足题目中所说的 30 秒的要求。
+
+至于选项 B、D，大体来讲也差不多，在 **Q024** 的解析中，我简单对比过 KDS 和 MSK 的区别，除了 KDS 有一些 shard 大小方面的限制（读：2MB/s，写：1MB/s），其他功能上都差不多。而且题目中也没有更多的要求，因此这两种服务都是适用的。问题出在 Kinesis Analytics 上，如果使用 SQL application，那么数据来源就只能是 Kinesis Data Streams / Firehose，参见 [Amazon Kinesis Data Analytics features - Kinesis Data Analytics SQL applications - Integrated Input and Output](https://aws.amazon.com/kinesis/data-analytics/features/?nc=sn&loc=2#Integrated_Input_and_Output)。因此答案只能选 D。
+
+另外要说明的一点是，Kinesis Analytics 是通过 [Schema Discovery](https://docs.aws.amazon.com/kinesisanalytics/latest/dev/sch-dis.html) 自动推断 JSON 数据的 schema 的。也可以通过 [Glue Schema Registry](https://docs.aws.amazon.com/glue/latest/dg/schema-registry.html) 来注册、跟踪 schema 的变化。
+
+## Q026
+
+`#redshift` `#s3` `#athena` `#optimization` 
+
+An e-commerce company stores customer purchase data in Amazon RDS. The company wants a solution to store and analyze historical data. The `most recent 6 months of data will be queried frequently` for analytics workloads. This data is `several terabytes` large. `Once a month`, historical data for the `last 5 years` must be accessible and will be `joined` with the more recent data. The company wants to `optimize performance and cost`.  
+Which storage solution will meet these requirements?  
+
+A. Create a read replica of the RDS database to store the most recent 6 months of data. Copy the historical data into Amazon S3. Create an AWS Glue Data Catalog of the data in Amazon S3 and Amazon RDS. Run historical queries using Amazon Athena.
+
+B. Use an ETL tool to incrementally load the most recent 6 months of data into an Amazon Redshift cluster. Run more frequent queries against this cluster. Create a read replica of the RDS database to run queries on the historical data.
+
+C. Incrementally copy data from Amazon RDS to Amazon S3. Create an AWS Glue Data Catalog of the data in Amazon S3. Use Amazon Athena to query the data.
+
+D. Incrementally copy data from Amazon RDS to Amazon S3. Load and store the most recent 6 months of data in Amazon Redshift. Configure an Amazon Redshift Spectrum table to connect to all historical data.
+
+### Answer - D
+
+按照题目中描述，近 6 个月的数据需要频繁访问，近 5 年的数据需每月访问。总数据量大概是几十个 TB 的大小。对于这样大的数据量，使用 RDS 来进行分析是很低效的，所以先排除选项 B。
+
+Athena 是一个简单的交互式的 SQL 查询工具，它并不适合做大规模的数据分析。因此用它来做历史数据的连接查询同样不够高效。另外它是按照扫描的数据量来收费的，因此对于 TB 级的数据来讲，它的费用也会很高。因此排除选项 A、C。
+
+选项 D 就是一个很标准的做法，常用数据放入 Redshift 集群，历史数据存储在 S3，这样兼顾了 Redshift 的高效和 S3 的廉价。此题选 D。
