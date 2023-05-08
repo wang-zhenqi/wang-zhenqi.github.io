@@ -746,4 +746,6 @@ D. Use calculated fields to create a new forecast and then use Amazon QuickSigh
 
 ### Answer - B
 
-这道题也是一道基础题。题目要求非技术人员使用 ML 对数据进行分析，这正好就是 QuickSight 的领域。QuickSight 内置了很多 ML 方案，其中就包括 Random Cut Forest。其他方案里，选项 A 的 [Glue ML Transform](https://docs.aws.amazon.com/glue/latest/dg/machine-learning.html) 是用于 ETL 的转换步骤中的，目前只有查找匹配项（即数据中是否有相同行）这一功能。选项 C、D 都可行，但需要技术能力的支持，不能满足 “LEAST amount of management” 的要求。
+这道题也是一道基础题。题目要求非技术人员使用 ML 对数据进行分析，这正好就是 QuickSight 的领域。QuickSight 内置了很多 ML 方案，其中就包括 Random Cut Forest。参考 [Gaining insights with machine learning (ML) in Amazon QuickSight](https://docs.aws.amazon.com/quicksight/latest/user/making-data-driven-decisions-with-ml-in-quicksight.html)。
+
+其他方案里，选项 A 的 [Glue ML Transform](https://docs.aws.amazon.com/glue/latest/dg/machine-learning.html) 是用于 ETL 的转换步骤中的，目前只有查找匹配项（即数据中是否有相同行）这一功能。选项 C、D 都可行，但需要技术能力的支持，不能满足 “LEAST amount of management” 的要求。
