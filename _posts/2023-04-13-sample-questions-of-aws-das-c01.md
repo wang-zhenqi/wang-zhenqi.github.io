@@ -706,3 +706,44 @@ D. Incrementally copy data from Amazon RDS to Amazon S3. Load and store the mos
 Athena 是一个简单的交互式的 SQL 查询工具，它并不适合做大规模的数据分析。因此用它来做历史数据的连接查询同样不够高效。另外它是按照扫描的数据量来收费的，因此对于 TB 级的数据来讲，它的费用也会很高。因此排除选项 A、C。
 
 选项 D 就是一个很标准的做法，常用数据放入 Redshift 集群，历史数据存储在 S3，这样兼顾了 Redshift 的高效和 S3 的廉价。此题选 D。
+
+## Q027
+
+`#athena`
+
+A company leverages Amazon Athena for ad-hoc queries against data stored in Amazon S3. The company wants to implement additional controls to `separate query execution and query history` among users, teams, or applications running in the same AWS account to comply with internal security policies.  
+Which solution meets these requirements?  
+
+A. Create an S3 bucket for each given use case, create an S3 bucket policy that grants permissions to appropriate individual IAM users. and apply the S3 bucket policy to the S3 bucket.
+
+B. Create an Athena workgroup for each given use case, apply tags to the workgroup, and create an IAM policy using the tags to apply appropriate permissions to the workgroup.
+
+C. Create an IAM role for each given use case, assign appropriate permissions to the role for the given use case, and add the role to associate the role with Athena.
+
+D. Create an AWS Glue Data Catalog resource policy for each given use case that grants permissions to appropriate individual IAM users, and apply the resource policy to the specific tables used by Athena.
+
+### Answer - B
+
+这是一道基础题，题目中描述的需求正是 Athena workgroup 的功能。给每个用例创建一个 workgroup，可以将用例间的查询命令、查询历史以及开销分隔开来。参考 [Separate queries and managing costs using Amazon Athena workgroups](https://aws.amazon.com/blogs/big-data/separating-queries-and-managing-costs-using-amazon-athena-workgroups/)。因此选 B。
+
+而对于其他选项，不论是给 S3 bucket 设置 policy，还是创建 IAM role，或是给 Glue Data Catalog 设置 resource policy，都只是限制了 Athena 可访问到的数据，但无法将 Query 的执行和历史区分开。也就是说在运行同一条查询的时候，有的用户会成功，有的用户会因为没有数据访问权限而失败，但这些查询都会被记录下来，所有人都可以看到。
+
+## Q028
+
+`#quicksight`
+
+A company wants to use an automatic machine learning (ML) `Random Cut Forest` (RCF) algorithm to visualize complex real-world scenarios, such as detecting seasonality and trends, excluding outliers, and imputing missing values.  
+The team working on this project is `non-technical` and is looking for an out-of-the-box solution that will require the `LEAST amount of management` overhead.  
+Which solution will meet these requirements?  
+
+A. Use an AWS Glue ML transform to create a forecast and then use Amazon QuickSight to visualize the data.
+
+B. Use Amazon QuickSight to visualize the data and then use ML-powered forecasting to forecast the key business metrics.
+
+C. Use a pre-build ML AMI from the AWS Marketplace to create forecasts and then use Amazon QuickSight to visualize the data.
+
+D. Use calculated fields to create a new forecast and then use Amazon QuickSight to visualize the data.
+
+### Answer - B
+
+这道题也是一道基础题。题目要求非技术人员使用 ML 对数据进行分析，这正好就是 QuickSight 的领域。QuickSight 内置了很多 ML 方案，其中就包括 Random Cut Forest。其他方案里，选项 A 的 [Glue ML Transform](https://docs.aws.amazon.com/glue/latest/dg/machine-learning.html) 是用于 ETL 的转换步骤中的，目前只有查找匹配项（即数据中是否有相同行）这一功能。选项 C、D 都可行，但需要技术能力的支持，不能满足 “LEAST amount of management” 的要求。
