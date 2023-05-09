@@ -818,7 +818,7 @@ D. Load the .csv files in an unsorted key order and vacuum the table in Amazon 
 
 ### Answer - B
 
-这道题的需求比较简单，就是要将每天 500 GB 的数据从 S3 bucket 传输到 Redshift。在 [[Questions#^203edb|Q019]] 的解析中说明了，Redshift 的 MPP 适合进行并行数据处理，此题中的数据传输正需要利用这一特性。因此拆分大文件，让 Redshift 并行地 LOAD 它们是最快速的方式。不过这里要说明的是，其实 Redshift 的 LOAD 操作本身就会尝试分割 128 MB 或者更大的文件，对于普通 CSV 文件、bzip 压缩的 CSV 文件以及 ORC 和 Parquet 文件，Redshift 都可以自动分割。其他不能自动分割的文件，才会推荐用户手动分割。所以其实选项 B 的做法没有错，但多少有些累赘。参考 [Loading data files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-use-multiple-files.html)。
+这道题的需求比较简单，就是要将每天 500 GB 的数据从 S3 bucket 传输到 Redshift。在 **Q019** 的解析中说明了，Redshift 的 MPP 适合进行并行数据处理，此题中的数据传输正需要利用这一特性。因此拆分大文件，让 Redshift 并行地 LOAD 它们是最快速的方式。不过这里要说明的是，其实 Redshift 的 LOAD 操作本身就会尝试分割 128 MB 或者更大的文件，对于普通 CSV 文件、bzip 压缩的 CSV 文件以及 ORC 和 Parquet 文件，Redshift 都可以自动分割。其他不能自动分割的文件，才会推荐用户手动分割。所以其实选项 B 的做法没有错，但多少有些累赘。参考 [Loading data files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-use-multiple-files.html)。
 
 选项 A 中，首先 INSERT 不适合做大规模数据的插入，参考 [Amazon Redshift - INSERT - Note](https://docs.aws.amazon.com/redshift/latest/dg/r_INSERT_30.html#Note:~:text=INSERT%20INTO...SELECT%29.-,Note,-We%20strongly%20encourage)。其次压缩 csv 文件会引入额外的处理时间。
 
