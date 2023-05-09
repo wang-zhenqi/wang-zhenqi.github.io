@@ -63,10 +63,10 @@ D. Store the data on an EMR File System (EMRFS) instead of HDFS and enable EMRF
 ### Answer - B
 
 A 选项：Spot Instance 不适合作为 core node，尽管它很便宜，但是它随时可能丢失，无法保证 core node 上数据的持久性。（但 spot instance 可以作为 task node）
-C 选项：EMR 不支持多个集群上的 HBase 的根目录指向同一个 S3 bucket。（参考：[https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-hbase-s3.html`#emr-hbase-s3-enable`](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-hbase-s3.html`#emr-hbase-s3-enable`)）
+C 选项：EMR 不支持多个集群上的 HBase 的根目录指向同一个 S3 bucket。（参考：[HBase on Amazon S3 (Amazon S3 storage mode) - Enabling HBase on Amazon S3](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-hbase-s3.html#emr-hbase-s3-enable)）
 B 和 D 选项是争议比较多的。首先这两种方案都是可实现的，它们之间的差别就在于 B 选项只是创建了一个多主节点的集群，而 D 选项还多加了一个只读的副集群。加一个 read-replica cluster 的好处在于这个集群可以创建在另一个可用区（Availability Zone）上，这样当主集群不可用时，副集群还可以正常进行读操作。而最终我更倾向于 B 选项的原因是，题中主要强调的是 cost-effective 和 data highly available，D 选项的缺点就在于成本会更大，而且强化的是集群的可用性；而对于数据来讲，在 S3 上存储的 EMRFS 已经可以使数据可用性足够高了。
 
-另外：题中提到的 EMRFS consistent view 主要是为了提高数据访问的一致性，利用 DynamoDB 存储元数据来追踪 EMRFS 上的数据，这样还会产生额外的 DynamoDB 的费用。由于 S3 自 2020-12-01 起添加了 strongly consistency 的特性，因此现在已经不再需要 EMRFS consistent view 了，从 2023-01-01 开始，新的 EMR 版本将不再将其作为配置选项，这样还能节约成本。（参考：[https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-plan-consistent-view.html](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-plan-consistent-view.html)）
+另外：题中提到的 EMRFS consistent view 主要是为了提高数据访问的一致性，利用 DynamoDB 存储元数据来追踪 EMRFS 上的数据，这样还会产生额外的 DynamoDB 的费用。由于 S3 自 2020-12-01 起添加了 strongly consistency 的特性，因此现在已经不再需要 EMRFS consistent view 了，从 2023-01-01 开始，新的 EMR 版本将不再将其作为配置选项，这样还能节约成本。（参考：[EMR - Consistent view](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-plan-consistent-view.html)）
 
 ## Q004
 
@@ -86,7 +86,9 @@ D. Use Amazon CloudWatch subscriptions to get access to a real-time feed of log
 ### Answer - C
 
 首先排除 A 选项，detailed monitoring 监测的是 EC2 实例的运行状况，和 basic monitoring 的差别在于它可以每分钟发布一次监测数据，同时要收费。它并不能监测运行在 EC2 上的应用程序的日志文件。另外，利用 Athena 来做实时的日志分析也是不合理的，因为 Athena 原本只是为了交互式的数据分析设计的，而题中要求的是“display new information with minimal delays”。
+
 B、C 选项中用词不够准确，争议也源自于此。KPL agent 不是在 Kinesis 的定义里并不存在，但是却有一个 Kinesis agent 的应用程序，它是基于 JAVA 的独立的程序，可以将消息传递给 Kinesis Data Stream 或者 Kinesis Firehose. 如果理解为 Kinesis agent，那么 C 选项就合理了。B 选项中的错误在于 QuickSight 不能可视化 OpenSearch 中的内容，QuickSight 主要的数据源是 Redshift、Athena、Aurora、文件，以及各种搭建在 EC2 上的数据库，总得来说就是各种数据库系统。OpenSearch 的结果可视化是用其内建的 Kibana 完成的。
+
 D 选项中，CloudWatch Subscription 确实可以实时地获取应用程序日志中的信息，可以自定义 metrics 来进行监测，也可以将监测结果传到 Kinesis Data Streams。但是 KDS 的数据不能直接进入 OpenSearch，只有 Kinesis Firehose 才可以。
 因此这道题的答案我更倾向于 C 选项。
 
@@ -160,7 +162,7 @@ D. Write the files to multiple S3 buckets.
 
 从另一方面来看，应用程序每 10 秒向 S3 写入一个文件，按照 Kinesis Data Stream 的性能，这个文件最多就是 20M，那么上百个 shards 就会在 S3 上生成上百个不超过 20M 的小文件。Athena 在查询时需要不断地读取文件及其 metadata，而 S3 每秒只支持最多 5500 次 GET / HEAD 请求，小文件过多就会造成读取速度下降，影响性能。
 
-因此解决方案就是将小文件合并成大文件，减少文件数量，降低查询请求次数。故而选 A。参考文档：[https://docs.aws.amazon.com/athena/latest/ug/performance-tuning.html`#performance-tuning-data-size`](https://docs.aws.amazon.com/athena/latest/ug/performance-tuning.html`#performance-tuning-data-size`)
+因此解决方案就是将小文件合并成大文件，减少文件数量，降低查询请求次数。故而选 A。参考文档：[Performance tuning in Athena](https://docs.aws.amazon.com/athena/latest/ug/performance-tuning.html#performance-tuning-data-size)
 
 ## Q008
 
@@ -317,7 +319,7 @@ D. Take a full backup of the data store and ship the backup files using AWS Sno
 
 依次来分析一下几个选项中提到的方案和服务：
 
-1. AWS DataSync：主要是用于文件的迁移，可以在本地文件系统、其他服务商提供的文件系统与 AWS 上的多种文件系统之间进行迁移。常见的用例可以参考[这里](https://docs.aws.amazon.com/datasync/latest/userguide/what-is-datasync.html`#use-cases`)，可以看到并不适用于整个数据库或是数据仓库的迁移。
+1. AWS DataSync：主要是用于文件的迁移，可以在本地文件系统、其他服务商提供的文件系统与 AWS 上的多种文件系统之间进行迁移。常见的用例可以参考[这里](https://docs.aws.amazon.com/datasync/latest/userguide/what-is-datasync.html#use-cases)，可以看到并不适用于整个数据库或是数据仓库的迁移。
 2. DMS：数据库迁移服务，可以从多种源数据库迁移到目标数据库，参考 [[AWS 数据库迁移服务简介]]。
 3. AWS Glue：提供 data catalog、data integration and ETL 等服务，正如其名，它非常适合对数据进行编目、处理和集成，就像是胶水一样，将不同来源的数据黏合在一起。
 4. Snowball：将本地数据加载到 S3 上的服务，适用于对大批量的数据进行加载。
@@ -333,7 +335,7 @@ D. Take a full backup of the data store and ship the backup files using AWS Sno
 `#quicksight` `#security` `#redshift` `#cross-region-access`
 
 A US-based sneaker retail company launched its global website. All the transaction data is stored in Amazon RDS and curated historic transaction data is stored in Amazon Redshift in the `us-east-1 Region`. The business intelligence (BI) team wants to enhance the user experience by providing a dashboard for sneaker trends.  
-The BI team decides to use Amazon QuickSight to render the website dashboards. During development, a team in Japan provisioned Amazon QuickSight in `ap- northeast-1`. The team is having difficulty connecting Amazon QuickSight from ap-northeast-1 to Amazon Redshift in us-east-1.  
+The BI team decides to use Amazon QuickSight to render the website dashboards. During development, a team in Japan provisioned Amazon QuickSight in `ap-northeast-1`. The team is having difficulty connecting Amazon QuickSight from ap-northeast-1 to Amazon Redshift in us-east-1.  
 Which solution will solve this issue and meet the requirements?
 
 A. In the Amazon Redshift console, choose to configure cross-Region snapshots and set the destination Region as ap-northeast-1. Restore the Amazon Redshift Cluster from the snapshot and connect to Amazon QuickSight launched in ap-northeast-1.
@@ -583,7 +585,7 @@ Which combination of components can meet these requirements? (Choose three.)
 2. 可以访问 S3 数据且支持 JDBC 连接
    可行的方案有 Athena，Redshift Spectrum，搭建在 EC2 集群上的数据库（这里包括 EMR 集群，因为 EMR 使用的其实是 EC2 的实例）等。可以先排除最后一种情况，因为这种方式需要的手动的配置和维护有很多，不符合题中限制操作管理的要求。题目中并没有足够的信息来排除 Redshift Spectrum，但选项中没有，所以可以排除
 3. 允许元数据管理 federation 的访问控制
-   对这些元数据的访问是可以通过 Single-Sign On (SSO) 的方式来获得一个 IAM role。这个认证的需求由 AWS 本身提供的认证方式就可以解决，并不局限于某一个服务。而元数据管理的方案就是 Glue data catalog 或者自己搭建 Hive 服务。后者会更为复杂且难以维护。参考：[Identity and access management for AWS Glue](https://docs.aws.amazon.com/glue/latest/dg/security-iam.html`#security_iam_authentication`)
+   对这些元数据的访问是可以通过 Single-Sign On (SSO) 的方式来获得一个 IAM role。这个认证的需求由 AWS 本身提供的认证方式就可以解决，并不局限于某一个服务。而元数据管理的方案就是 Glue data catalog 或者自己搭建 Hive 服务。后者会更为复杂且难以维护。参考：[Identity and access management for AWS Glue](https://docs.aws.amazon.com/glue/latest/dg/security-iam.html#security_iam_authentication)
 4. 使用 PySpark 和 Scala 的批处理 ETL
    方案是 Glue ETL 或者在 EMR 上自定义脚本，同样地，后者更为复杂。
 
@@ -749,3 +751,100 @@ D. Use calculated fields to create a new forecast and then use Amazon QuickSigh
 这道题也是一道基础题。题目要求非技术人员使用 ML 对数据进行分析，这正好就是 QuickSight 的领域。QuickSight 内置了很多 ML 方案，其中就包括 Random Cut Forest。参考 [Gaining insights with machine learning (ML) in Amazon QuickSight](https://docs.aws.amazon.com/quicksight/latest/user/making-data-driven-decisions-with-ml-in-quicksight.html)。
 
 其他方案里，选项 A 的 [Glue ML Transform](https://docs.aws.amazon.com/glue/latest/dg/machine-learning.html) 是用于 ETL 的转换步骤中的，目前只有查找匹配项（即数据中是否有相同行）这一功能。选项 C、D 都可行，但需要技术能力的支持，不能满足 “LEAST amount of management” 的要求。
+
+## Q029
+
+`#quicksight` `#security` `#permission`
+
+A retail company's data analytics team recently created `multiple product sales analysis dashboards` for the average selling price per product using Amazon  
+QuickSight. The dashboards were created `from .csv files uploaded to Amazon S3`. The team is now planning to share the dashboards with the `respective external product owners` by creating individual users in Amazon QuickSight. For compliance and governance reasons, `restricting access` is a key requirement. The product owners `should view only their respective product analysis` in the dashboard reports.  
+Which approach should the data analytics team take to allow product owners to view only their products in the dashboard?  
+
+A. Separate the data by product and use S3 bucket policies for authorization.
+
+B. Separate the data by product and use IAM policies for authorization.
+
+C. Create a manifest file with row-level security.
+
+D. Create dataset rules with row-level security.
+
+### Answer - D
+
+这也是一道很基础的题目，重点是要读清题目要求。一个零售公司对其产品的销售情况做了一个分析面板，想要把它分享给产品的供应商，并且不同产品的数据只能由该产品的供应商访问。由于各产品的数据都混杂在 csv 文件中，所以通过 S3 bucket policy 或者 IAM policy 是不能区分访问权限的。选项 C 中提到的 manifest file 是存储在 S3 bucket 里的特殊文件，用来提示 QuickSight 需要导入哪些 S3 bucket 中的文件（参考 [Supported formats for Amazon S3 manifest files](https://docs.aws.amazon.com/quicksight/latest/user/supported-manifest-file-format.html)），同样只能约束 QuickSight 可访问的文件，但不具备行级别的控制，不能约束哪些人能访问哪些数据。所以排除选项 A、B、C。
+
+这样的细粒度的访问控制正好可以用 QuickSight 提供的 row-level security 来实现，QuickSight 可以控制每一行数据能够被谁访问。参考 [Using row-level security (RLS) in Amazon QuickSight](https://docs.aws.amazon.com/quicksight/latest/user/row-level-security.html)。
+
+## Q030
+
+`#emr` `#lambda` `#glue` `#cost-effective`
+
+A company has developed an Apache Hive script to `batch process data stored in Amazon S3`. The script needs to ==run once every day and store the output in  
+Amazon S3==. The company tested the script, and it completes within 30 minutes on a small local three-node cluster.  
+Which solution is the `MOST cost-effective` for scheduling and executing the script?  
+
+A. Create an AWS Lambda function to spin up an Amazon EMR cluster with a Hive execution step. Set KeepJobFlowAliveWhenNoSteps to false and disable the termination protection flag. Use Amazon CloudWatch Events to schedule the Lambda function to run daily.
+
+B. Use the AWS Management Console to spin up an Amazon EMR cluster with Python, Hue, Hive, and Apache Oozie. Set the termination protection flag to true and use Spot Instances for the core nodes of the cluster. Configure an Oozie workflow in the cluster to invoke the Hive script daily.
+
+C. Create an AWS Glue job with the Hive script to perform the batch operation. Configure the job to run once a day using a time-based schedule.
+
+D. Use AWS Lambda layers and load the Hive runtime to AWS Lambda and copy the Hive script. Schedule the Lambda function to run daily by creating a workflow using AWS Step Functions.
+
+
+### Answer - A
+
+这道题是有陷阱的，读完题目首先想到的就是 Glue job 不就是用来做这个的嘛，既能处理数据，又能设置定时调度。然而题目要求的是运行 Hive script，这是 Glue job 不支持的。Glue job 只支持 Python、Spark 脚本。因此排除选项 C。
+
+那么就需要其他运行 Hive 脚本的方式了，EMR 和 Lambda 都是备选方案。
+
+对于 Lambda 来说，本身没有提供 Hive 的 runtime，那么就需要用户提供自定义的 runtime 或者是容器镜像，多少会有些麻烦。同时由于该 Hive 脚本在本地环境运行需要 30 分钟左右，那么迁移到 Lambda 上来运行就会超时（Lambda 运行时间最多 15 分钟）。因此排除选项 D 。
+
+选项 A 和 B 都是利用 EMR 运行 Hive 脚本，区别在于选项 B 中的调度系统（Oozie）是运行在 EMR 上的，那就意味着这个 EMR 集群必须一直运行，否则任务调度就失效了。这样会产生很多不必要的开销，因此排除选项 B。像选项 A 那样，用 CloudWatch 生成 Event 来触发 Lambda function，再由 Lambda function 来启动 EMR 集群来运行脚本的方式是最经济的。参考 [Tutorial: Schedule AWS Lambda Functions Using CloudWatch Events](https://docs.aws.amazon.com/AmazonCloudWatch/latest/events/RunLambdaSchedule.html)。
+
+## Q031
+
+`#redshift` `#optimization`
+
+A company wants to `improve the data load time` of a sales data dashboard. Data has been collected as `.csv files and stored within an Amazon S3 bucket that is partitioned by date`. The data is then `loaded to an Amazon Redshift` data warehouse for `frequent analysis`. The data volume is up to `500 GB per day`.  
+Which solution will improve the data loading performance?  
+
+A. Compress .csv files and use an INSERT statement to ingest data into Amazon Redshift.
+
+B. Split large .csv files, then use a COPY command to load data into Amazon Redshift.
+
+C. Use Amazon Kinesis Data Firehose to ingest data into Amazon Redshift.
+
+D. Load the .csv files in an unsorted key order and vacuum the table in Amazon Redshift.
+
+### Answer - B
+
+这道题的需求比较简单，就是要将每天 500 GB 的数据从 S3 bucket 传输到 Redshift。在 [[Questions#^203edb|Q019]] 的解析中说明了，Redshift 的 MPP 适合进行并行数据处理，此题中的数据传输正需要利用这一特性。因此拆分大文件，让 Redshift 并行地 LOAD 它们是最快速的方式。不过这里要说明的是，其实 Redshift 的 LOAD 操作本身就会尝试分割 128 MB 或者更大的文件，对于普通 CSV 文件、bzip 压缩的 CSV 文件以及 ORC 和 Parquet 文件，Redshift 都可以自动分割。其他不能自动分割的文件，才会推荐用户手动分割。所以其实选项 B 的做法没有错，但多少有些累赘。参考 [Loading data files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-use-multiple-files.html)。
+
+选项 A 中，首先 INSERT 不适合做大规模数据的插入，参考 [Amazon Redshift - INSERT - Note](https://docs.aws.amazon.com/redshift/latest/dg/r_INSERT_30.html#Note:~:text=INSERT%20INTO...SELECT%29.-,Note,-We%20strongly%20encourage)。其次压缩 csv 文件会引入额外的处理时间。
+
+选项 C 使用 Kinesis Firehose 是可行的，但是对于提升传输速度没有帮助，因为这样的传输是串行的。
+
+选项 D 在传输方面和 C 一样，对于速度提升没有什么帮助。值得一提的是 `VACUUM` 操作。`VACCUM` 会将 Redshift 中的指定表进行排序并且回收空间。但实际上 Redshift 本身就会自动地在后台执行 `VACUUM DELETE` 操作。参考 [Amazon Redshift - VACUUM](https://docs.aws.amazon.com/redshift/latest/dg/r_VACUUM_command.html)。
+
+## Q032
+
+`#redshift` `#optimization`
+
+A company has a data warehouse in Amazon Redshift that is approximately 500 TB in size. New data is `imported every few hours` and `read-only queries are run throughout the day and evening`. There is a `particularly heavy load` with no writes for several hours each morning on business days. During those hours, some queries are queued and take a long time to execute. The company needs to optimize query execution and `avoid any downtime`.  
+What is the `MOST cost-effective` solution?  
+
+A. Enable concurrency scaling in the workload management (WLM) queue.
+
+B. Add more nodes using the AWS Management Console during peak hours. Set the distribution style to ALL.
+
+C. Use elastic resize to quickly add nodes during peak times. Remove the nodes when they are not needed.
+
+D. Use a snapshot, restore, and resize operation. Switch to the new target cluster.
+
+### Answer - A
+
+这道题的重点是分析出性能问题的原因。由题目描述可知，每个工作日的早晨都会几个小时的负载过重，导致查询指令要排队很久才能被执行。那么为什么查询指令会进入队列等待呢？这是因为 Redshift 要为每个查询分配资源，例如内存空间。设计一个 query queue 可以让多个查询指令易于管理。这个性能问题的直接原因就是在这几个小时内，那些只读的查询指令被其他长时间的查询操作阻碍了，于是它们分配不到资源。
+
+解决资源问题，最直观的方式肯定是直接增加集群中的节点，但往往都会造成很多额外的开销。运行中的 Redshift 是无法无缝增减节点的，只能通过 RESIZE 操作。不论是 elastic resize 还是 classic resize 都会造成集群在一段时间内不可用。elastic resize 需要几分钟，classic resize 则需几小时到几天。因此选项 B、C、D 都不满足 “avoid any downtime” 的要求。故而选 A。
+
+选项 A 中提到了启用 WLM 的 concurrency scaling 功能。首先说 WLM，它可以创建多个 query queue，不同优先级的查询可以进入不同的队列。如题中的这种情况，耗时短的查询操作可以不被耗时长的查询阻碍，直接分配到资源从而得以运行。而 concurrency scaling 可以给现有的集群增加额外的集群容量。把两者结合起来，高优先级的查询会经由 WLM 的队列分配给额外的 concurrency-scaling cluster 单独运行，由此解决了题中出现的性能问题。参考 [Working with concurrency scaling](https://docs.aws.amazon.com/redshift/latest/dg/concurrency-scaling.html)。
