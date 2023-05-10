@@ -848,3 +848,108 @@ D. Use a snapshot, restore, and resize operation. Switch to the new target clus
 解决资源问题，最直观的方式肯定是直接增加集群中的节点，但往往都会造成很多额外的开销。运行中的 Redshift 是无法无缝增减节点的，只能通过 RESIZE 操作。不论是 elastic resize 还是 classic resize 都会造成集群在一段时间内不可用。elastic resize 需要几分钟，classic resize 则需几小时到几天。因此选项 B、C、D 都不满足 “avoid any downtime” 的要求。故而选 A。
 
 选项 A 中提到了启用 WLM 的 concurrency scaling 功能。首先说 WLM，它可以创建多个 query queue，不同优先级的查询可以进入不同的队列。如题中的这种情况，耗时短的查询操作可以不被耗时长的查询阻碍，直接分配到资源从而得以运行。而 concurrency scaling 可以给现有的集群增加额外的集群容量。把两者结合起来，高优先级的查询会经由 WLM 的队列分配给额外的 concurrency-scaling cluster 单独运行，由此解决了题中出现的性能问题。参考 [Working with concurrency scaling](https://docs.aws.amazon.com/redshift/latest/dg/concurrency-scaling.html)。
+
+## Q033
+
+`#redshift`
+
+A company analyzes its data in an Amazon Redshift data warehouse, which currently has a cluster of `three dense storage nodes`. Due to a recent business acquisition, the company `needs to load an additional 4 TB of user data` into Amazon Redshift. The engineering team will combine `all the user data` and apply complex calculations that require `I/O intensive` resources. The company needs to `adjust the cluster's capacity` to support the change in analytical and storage requirements.
+Which solution meets these requirements?
+
+A. Resize the cluster using elastic resize with dense compute nodes.
+
+B. Resize the cluster using classic resize with dense compute nodes.
+
+C. Resize the cluster using elastic resize with dense storage nodes.
+
+D. Resize the cluster using classic resize with dense storage nodes.
+
+### Answer - A
+
+首先要明确 dense storage 节点和 dense compute 节点的区别。Dense storage 节点的存储资源是要优先于计算资源的，硬盘空间是 TB 级的，适用于大数据量的场景；Dense compute 节点则相反，具有更多的计算资源，适用于高运算强度的场景。
+
+那么从此题的需求来看，I/O intensive 就指示着需要更多的计算资源，也就是说节点类型应该变更为 dense compute，因此排除选项 C 和 D。
+
+再来区分一下 elastic resize 和 classic resize。Elastic resize 可以在不停机的同时扩展集群及其资源、更改节点类型。此外，它还能够在保留现有数据存储容量的同时扩展集群的计算容量。Classic resize 需要停机时间并替换节点，而不只是调整大小。 因此可能导致数据丢失并且需要更长的维护时间。
+
+综上，应该选择 A。参考 [Overview of managing clusters in Amazon Redshift](https://docs.aws.amazon.com/redshift/latest/mgmt/managing-cluster-operations.html)。
+
+## Q034
+
+`#emr` `#security`
+
+A company stores its sales and marketing data that includes personally identifiable information (PII) in Amazon S3. The company allows its analysts to launch their own Amazon EMR cluster and run analytics reports with the data. To meet compliance requirements, the company must ensure the `data is not publicly accessible` throughout this process. A data engineer has secured Amazon S3 but must ensure the individual EMR clusters created by the analysts are not exposed to the public internet.
+Which solution should the data engineer to meet this compliance requirement with `LEAST amount of effort`?
+
+A. Create an EMR security configuration and ensure the security configuration is associated with the EMR clusters when they are created.
+
+B. Check the security group of the EMR clusters regularly to ensure it does not allow inbound traffic from IPv4 0.0.0.0/0 or IPv6 ::/0.
+
+C. Enable the block public access setting for Amazon EMR at the account level before any EMR cluster is created.
+
+D. Use AWS WAF to block public internet access to the EMR clusters across the board.
+
+### Answer - C
+
+首先要明确题中的要求只是数据不会被外部访问，而并非要在不同的分析人员间设置访问权限。这其实是一个较高层面的、粗粒度的访问控制。那么只要在账户级别——即公司内部——设置一个禁止公共访问的策略即可。正如选项 C 所描述的那样，EMR 为每个账户的每个区域都提供了一个默认的配置——block public access，这样除非特意地用安全策略设置公网访问，任意新建的 EMR 集群都会应用这个配置。特别要说明的是，这一规则只会在创建集群时才被应用，当集群运行起来后，拥有适当权限的 IAM role 是可以修改安全规则以使集群在公网可访问的。参考 [Using Amazon EMR block public access](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-block-public-access.html)。
+
+选项 A 和 B 的问题在于：
+
+1. 粒度太细。按照上面分析可知，这个需求只需要在整个账户的层面设置即可
+2. 每个集群都需要设置，选项 B 甚至还需要定期检查，这样很不方便，增加了维护成本。
+
+选项 D 中提到的 [WAF - Web Application Firewall](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-control-access-aws-waf.html) 就和题中的需求完全无关了。它主要是用来保护网络应用的，更具体地说是通过限制对 API 的请求，来阻止网络攻击的。它可以过滤特定 IP、网域、区域等传来的请求，也可过滤包含特定内容的请求。它属于 [AWS API Gateway](https://docs.aws.amazon.com/apigateway/latest/developerguide/welcome.html) 的一部分。
+
+## Q035
+
+`#redshift` `#optimization`
+
+A financial company uses Amazon S3 as its data lake and has set up a data warehouse using a `multi-node Amazon Redshift cluster`. The data files in the data lake are `organized in folders based on the data source` of each data file. All the data files are loaded to one table in the Amazon Redshift cluster using a separate  
+COPY command for each data file location. With this approach, loading all the data files into Amazon Redshift takes a long time to complete. Users want a `faster solution with little or no increase in cost while maintaining the segregation` of the data files in the S3 data lake.  
+Which solution meets these requirements?  
+
+A. Use Amazon EMR to copy all the data files into one folder and issue a COPY command to load the data into Amazon Redshift.
+
+B. Load all the data files in parallel to Amazon Aurora, and run an AWS Glue job to load the data into Amazon Redshift.
+
+C. Use an AWS Glue job to copy all the data files into one folder and issue a COPY command to load the data into Amazon Redshift.
+
+D. Create a manifest file that contains the data file locations and issue a COPY command to load the data into Amazon Redshift.
+
+### Answer - D
+
+这是一道基础题，考察 Redshift COPY 命令的最佳实践。选项 A、B、C 本质上都是先把不同目录下（在 S3 的语境里可以称为前缀）的数据汇集到一起，再将它们导入到 Redshift 表中。这些方案都是能够实现数据导入的，但是都会引入额外的成本。选项 A、C 略比选项 B 强一点，因为至少它们的 COPY 操作可以是并行的，而选项 B 使用 Glue job 来导入数据，这个过程就变成了串行的，反而降低了效率。
+
+选项 D 就是一个最佳的做法。Menifest 文件是一个 JSON 格式的文本文件，记录着所有需要导入 Redshift 的文件的绝对路径。Redshift 通过解析这个文件，就可以自动地并行地使用 COPY 命令导入数据。这样既不破坏 S3 上文件的分隔，也不引入新的服务，数据传输速度还能变快。参考 [Using a manifest to specify data files](https://docs.aws.amazon.com/redshift/latest/dg/loading-data-files-using-manifest.html)。
+
+## Q036
+
+`#redshift`
+
+A company's marketing team has asked for help in identifying a `high performing long-term storage service` for their data based on the following requirements:  
+✑ The data size is approximately `32 TB` uncompressed.  
+✑ There is a `low volume of single-row inserts` each day.  
+✑ There is a `high volume of aggregation queries` each day.  
+✑ `Multiple complex joins` are performed.  
+✑ The queries typically `involve a small subset of the columns` in a table.  
+Which storage service will provide the MOST performant solution?  
+
+A. Amazon Aurora MySQL
+
+B. Amazon Redshift
+
+C. Amazon Neptune
+
+D. Amazon Elasticsearch
+
+### Answer - B
+
+这是目前遇到的最基础的题目了。
+
+首先从数据量就排除了选项 A，更别说 MySQL 并不适用于 OLAP。
+
+Amazon Neptune 是一个图（Graph）数据库，正如 Graph 的特点，数据间是高度连接的，这种图数据用普通的关系型数据库或者数据仓库中的维度建模来表示是很不现实的。当然在题目的要求下，这些数据也不是图数据。
+
+ElasticSearch（现在叫 OpenSearch）是一个搜索引擎，主要用于全文本搜索。并不适用于题目所述的场景。
+
+从题目要求来看，数据是列式存储的，有着大量的聚合、连接运算，数据量大，这就是典型的数据仓库的场景，使用 Redshift 正合适。
