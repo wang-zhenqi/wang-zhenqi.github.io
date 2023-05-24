@@ -63,10 +63,12 @@ D. Store the data on an EMR File System (EMRFS) instead of HDFS and enable EMRF
 ### Answer - B
 
 A 选项：Spot Instance 不适合作为 core node，尽管它很便宜，但是它随时可能丢失，无法保证 core node 上数据的持久性。（但 spot instance 可以作为 task node）
+
 C 选项：EMR 不支持多个集群上的 HBase 的根目录指向同一个 S3 bucket。（参考：[HBase on Amazon S3 (Amazon S3 storage mode) - Enabling HBase on Amazon S3](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-hbase-s3.html#emr-hbase-s3-enable)）
+
 B 和 D 选项是争议比较多的。首先这两种方案都是可实现的，它们之间的差别就在于 B 选项只是创建了一个多主节点的集群，而 D 选项还多加了一个只读的副集群。加一个 read-replica cluster 的好处在于这个集群可以创建在另一个可用区（Availability Zone）上，这样当主集群不可用时，副集群还可以正常进行读操作。而最终我更倾向于 B 选项的原因是，题中主要强调的是 cost-effective 和 data highly available，D 选项的缺点就在于成本会更大，而且强化的是集群的可用性；而对于数据来讲，在 S3 上存储的 EMRFS 已经可以使数据可用性足够高了。
 
-另外：题中提到的 EMRFS consistent view 主要是为了提高数据访问的一致性，利用 DynamoDB 存储元数据来追踪 EMRFS 上的数据，这样还会产生额外的 DynamoDB 的费用。由于 S3 自 2020-12-01 起添加了 strongly consistency 的特性，因此现在已经不再需要 EMRFS consistent view 了，从 2023-01-01 开始，新的 EMR 版本将不再将其作为配置选项，这样还能节约成本。（参考：[EMR - Consistent view](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-plan-consistent-view.html)）
+另外：题中提到的 EMRFS consistent view 主要是为了提高数据访问的一致性，利用 DynamoDB 存储元数据来追踪 EMRFS 上的数据，这样还会产生额外的 DynamoDB 的费用。由于 S3 自 2020-12-01 起添加了 strongly consistency 的特性，因此现在已经不再需要 EMRFS consistent view 了，从 2023-06-01 开始，新的 EMR 版本将不再将其作为配置选项，这样还能节约成本。（参考：[EMR - Consistent view](https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-plan-consistent-view.html)）
 
 ## Q004
 
@@ -430,8 +432,8 @@ D. Publish data to two Kinesis data streams. Deploy a custom application using 
 
 `#cross-region-access` `#glue`
 
-A company currently uses Amazon Athena to query its global datasets. The regional data is `stored in Amazon S3` in the `us-east-1 and us-west-2` Regions. The data is not encrypted. To simplify the query process and manage it centrally, the company wants to ==use Athena in us-west-2 to query data from Amazon S3 in both  
-Regions==. The solution should be as low-cost as possible.  
+A company currently uses Amazon Athena to query its global datasets. The regional data is `stored in Amazon S3` in the `us-east-1 and us-west-2` Regions. The data is not encrypted. To simplify the query process and manage it centrally, the company wants to `use Athena in us-west-2 to query data from Amazon S3 in both  
+Regions`. The solution should be as low-cost as possible.  
 What should the company do to achieve this goal?
 
 A. Use AWS DMS to migrate the AWS Glue Data Catalog from us-east-1 to us-west-2. Run Athena queries in us-west-2.
@@ -778,8 +780,8 @@ D. Create dataset rules with row-level security.
 
 `#emr` `#lambda` `#glue` `#cost-effective`
 
-A company has developed an Apache Hive script to `batch process data stored in Amazon S3`. The script needs to ==run once every day and store the output in  
-Amazon S3==. The company tested the script, and it completes within 30 minutes on a small local three-node cluster.  
+A company has developed an Apache Hive script to `batch process data stored in Amazon S3`. The script needs to `run once every day and store the output in  
+Amazon S3`. The company tested the script, and it completes within 30 minutes on a small local three-node cluster.  
 Which solution is the `MOST cost-effective` for scheduling and executing the script?  
 
 A. Create an AWS Lambda function to spin up an Amazon EMR cluster with a Hive execution step. Set KeepJobFlowAliveWhenNoSteps to false and disable the termination protection flag. Use Amazon CloudWatch Events to schedule the Lambda function to run daily.
@@ -953,3 +955,114 @@ Amazon Neptune 是一个图（Graph）数据库，正如 Graph 的特点，数�
 ElasticSearch（现在叫 OpenSearch）是一个搜索引擎，主要用于全文本搜索。并不适用于题目所述的场景。
 
 从题目要求来看，数据是列式存储的，有着大量的聚合、连接运算，数据量大，这就是典型的数据仓库的场景，使用 Redshift 正合适。
+
+## Q037
+
+`#kinesis-data-firehose` `#opensearch` `#quicksight`
+
+A technology company is creating a dashboard that will `visualize and analyze time-sensitive data`. The data will come in through Amazon Kinesis Data Firehose with the `buffer interval set to 60 seconds`. The dashboard `must support near-real-time data`.
+Which visualization solution will meet these requirements?
+
+A. Select Amazon OpenSearch Service (Amazon Elasticsearch Service) as the endpoint for Kinesis Data Firehose. Set up an OpenSearch Dashboards (Kibana) using the data in Amazon OpenSearch Service (Amazon ES) with the desired analyses and visualizations.
+
+B. Select Amazon S3 as the endpoint for Kinesis Data Firehose. Read data into an Amazon SageMaker Jupyter notebook and carry out the desired analyses and visualizations.
+
+C. Select Amazon Redshift as the endpoint for Kinesis Data Firehose. Connect Amazon QuickSight with SPICE to Amazon Redshift to create the desired analyses and visualizations.
+
+D. Select Amazon S3 as the endpoint for Kinesis Data Firehose. Use AWS Glue to catalog the data and Amazon Athena to query it. Connect Amazon QuickSight with SPICE to Athena to create the desired analyses and visualizations.
+
+### Answer - A
+
+基础题，考察近实时数据的分析与可视化。AWS 的服务中只有 OpenSearch 可以做到这一点，它可以与 Kinesis Data Firehose 集成，快速地处理经由 Firehose 传入的数据。因此选 A。
+
+选项 B 中提到的 SageMaker Jupyter notebook 更适合做数据探索。而且有 Firehose 传数据到 S3 再将数据读入 Jupyter notebook 会花费更长时间。
+
+同理，选项 C、D 都用到了太多其他的服务，比如 Firehose -> Redshift -> QuickSight SPICE，其中每一步都涉及到数据传输。而且 QuickSight 上的展示的数据需要定时刷新，时间间隔至少为每小时（企业版，普通版至少是每天）。参考 [Refreshing SPICE data](https://docs.aws.amazon.com/quicksight/latest/user/refreshing-imported-data.html)。
+
+
+## Q038
+
+`#ecr` `#optimization`
+
+A financial company uses `Apache Hive on Amazon EMR` for ad-hoc queries. Users are complaining of sluggish performance.
+A data analyst notes the following:
+✑ Approximately `90% of queries are submitted 1 hour after the market opens`.
+Hadoop Distributed File System `(HDFS) utilization never exceeds 10%`.
+
+Which solution would help address the performance issues?
+
+A. Create instance fleet configurations for core and task nodes. Create an automatic scaling policy to scale out the instance groups based on the Amazon CloudWatch CapacityRemainingGB metric. Create an automatic scaling policy to scale in the instance fleet based on the CloudWatch CapacityRemainingGB metric.
+
+B. Create instance fleet configurations for core and task nodes. Create an automatic scaling policy to scale out the instance groups based on the Amazon CloudWatch YARNMemoryAvailablePercentage metric. Create an automatic scaling policy to scale in the instance fleet based on the CloudWatch YARNMemoryAvailablePercentage metric.
+
+C. Create instance group configurations for core and task nodes. Create an automatic scaling policy to scale out the instance groups based on the Amazon CloudWatch CapacityRemainingGB metric. Create an automatic scaling policy to scale in the instance groups based on the CloudWatch CapacityRemainingGB metric.
+
+D. Create instance group configurations for core and task nodes. Create an automatic scaling policy to scale out the instance groups based on the Amazon CloudWatch YARNMemoryAvailablePercentage metric. Create an automatic scaling policy to scale in the instance groups based on the CloudWatch YARNMemoryAvailablePercentage metric.
+
+### Answer - D
+
+从选项中可以看出来，重点是区分 “instance fleet vs instance group” 以及 CloudWatch 的指标 “CapacityRemainingGB vs YARNMemoryAvailablePercentage”。
+
+Instance fleet 允许 EMR 集群使用不同类型、不同可用区的实例；而 instance group 内的实例只能是同一类型的。关于这一部分内容，在创建 EMR 集群时可以有更直观的感受，建议亲自动手创建一下集群，就会看到有不同的选项和配置了。参考 [Create a cluster with instance fleets or uniform instance groups](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-instance-group-configuration.html)。
+
+CapacityRemainingGB 指的是 HDFS 上剩余的空间；YARNMemoryAvailablePercentage 指的是 YARN 集群上可用的内存空间的百分比。
+
+题目要求是定位到造成性能问题的原因。四个选项都采用的是利用 CloudWatch 指标来自动动态扩充集群容量。那么按照条件，接下来分析一下应该使用哪种指标。
+
+从题目描述可以看出，HDFS 的使用量从来没超过 10%，就说明存储空间不是性能瓶颈，因此 CapacityRemainingGB 是没有用的。造成性能问题的原因很可能是查询量突然增大引起的可用内存不足，所以可以追踪 YARNMemoryAvailablePercentage 以验证猜想。所以排除选项 A、C。
+
+不选 A 的原因是 instance  fleet 不支持 automatic scaling，参考 [Using automatic scaling with a custom policy for instance groups](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-automatic-scaling.html):
+
+> Automatic scaling with a custom policy is available with the instance groups configuration and is not available when you use instance fleets.
+
+需要说明的是，这道题的背景可能是较早版本的 AWS EMR 服务，当时的 instance fleet 是不支持 automatic scaling 的。但现在的版本已经将 automatic scaling 改成了 EMR managed scaling。EMR managed scaling 可以不需要用户提前预测集群的使用容量，不需要手动编写规则，而是利用内置的算法，自动地检测集群运行的情况，自动地伸缩集群容量。它和 automatic scaling 的区别见 [EMR Managed Scaling vs. Auto Scaling](https://aws.amazon.com/blogs/big-data/introducing-amazon-emr-managed-scaling-automatically-resize-clusters-to-lower-cost/#:~:text=emr%20managed%20scaling%20vs.%20auto%20scaling)。
+
+
+## Q039
+
+`#emr` `#s3` `#optimization`
+
+A media company has been performing analytics on log data generated by its applications. There has been a recent increase in the number of concurrent analytics jobs running, and the overall performance of existing jobs is decreasing as the number of new jobs is increasing. `The partitioned data is stored in Amazon S3 One Zone-Infrequent Access` (S3 One Zone-IA) and the analytic processing is performed on Amazon EMR clusters using the `EMR File System (EMRFS) with consistent view enabled`. A data analyst has determined that `it is taking longer for the EMR task nodes to list objects` in Amazon S3.
+Which action would MOST likely increase the performance of accessing log data in Amazon S3?
+
+A. Use a hash function to create a random string and add that to the beginning of the object prefixes when storing the log data in Amazon S3.
+
+B. Use a lifecycle policy to change the S3 storage class to S3 Standard for the log data.
+
+C. Increase the read capacity units (RCUs) for the shared Amazon DynamoDB table.
+
+D. Redeploy the EMR clusters that are running slowly to a different Availability Zone.
+
+### Answer - C
+
+这道题也是一个较早期的的题目，Amazon S3 早已支持了 strongly consistent，所以 EMRFS 上不再需要设置 consistent view 来保证文件的一致性（在 **Q003** 中已提到过）。不过仍然可以分析一下这道题目。题目的前提是，EMRFS 的 consistent view 已启用，日志文件在 S3 的存储类型是 One Zone - Infrequent。
+
+题中已明确指出，造成性能问题的原因是 EMR 在对 S3 执行 *list objects* 操作时所需时间越来越长。那么 list objects 操作需要经过哪些过程呢？根据 EMRFS consistent view 的特性，不难推测出，EMR 首先需要获取到 S3 上的文件列表，再去 DynamoDB 中查看文件的元数据，然后对比元数据和 S3 上文件的差别，判断是否已经是一致的，最后才能列出该文件。这里的瓶颈就在于读取 DynamoDB 的元数据，因为 DynamoDB 是有性能限制的，读操作消耗 RCU，如果 RCU 设置得太小，则会使读性能受限。因此增加 RCU 是有可能改善整个操作性能的。
+
+选项 A 是优化 S3 的并行度的，一个 prefix 每秒支持 5500 次读请求，如果添加前缀的数量，就可以同时进行更多次的读请求。但在 EMR consistent view 下，即使读到了数据，依然需要对比 DynamoDB 中的元数据，不提高 RCU，性能依旧提升不了。
+
+选项 B 中提到了 S3 的存储类型，这些存储类型主要是改变了文件的可访问性从而减少不常访问的文件所需的费用。选项 D 与题中的性能没有直接关系。
+
+
+## Q040
+
+`#glue`
+
+A company has developed several AWS Glue jobs to `validate and transform its data` from Amazon S3 and load it into Amazon RDS for MySQL `in batches once every day`. The ETL jobs read the S3 data using a DynamicFrame. Currently, the ETL developers are experiencing challenges in `processing only the incremental data on every run`, as the AWS Glue job processes all the S3 input data on each run.
+Which approach would allow the developers to solve the issue with minimal coding effort?
+
+A. Have the ETL jobs read the data from Amazon S3 using a DataFrame.
+
+B. Enable job bookmarks on the AWS Glue jobs.
+
+C. Create custom logic on the ETL jobs to track the processed S3 objects.
+
+D. Have the ETL jobs delete the processed objects or data from Amazon S3 after each run.
+
+### Answer - B
+
+基础题，Glue 的 job bookmarks 就是用来记录之前的执行情况的，这样新一轮的运行就可以在之前的基础上进行，达到增量的目的。关于 job bookmarks，在 **Q005** 中也已提到过。
+
+选项 A、C，是可以实现的，但是代码量会很多，不符合要求。
+
+选项 D 肯定是不推荐的，数据工程中，尽量不选择删除历史文件。
