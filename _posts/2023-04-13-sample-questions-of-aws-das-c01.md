@@ -1,7 +1,7 @@
 ---
 layout: post
-title: "AWS Data Analytics Specialty (DAS-C01) 认证例题整理"
-description: "这篇文章里包含了笔者整理的关于 DAS-C01 认证的样题，很多题目是从网站、论坛上搜集来的。答案是笔者通过查阅资料并结合他人解题思路后得出的，不能保证正确性。读者需认真思考，仔细辨别，欢迎提出不同意见。"
+title: "AWS Data Analytics Specialty (DAS-C01) 认证例题整理（一）"
+description: "这篇文章里包含了笔者整理的关于 DAS-C01 认证的样题，共 50 道题。这些题目都是从网站、论坛上搜集来的。答案是笔者通过查阅资料并结合他人解题思路后得出的，不能保证正确性。读者需认真思考，仔细辨别，欢迎提出不同意见。"
 tags: [aws, das-c01, reference]
 ---
 
@@ -820,7 +820,7 @@ D. Load the .csv files in an unsorted key order and vacuum the table in Amazon 
 
 ### Answer - B
 
-这道题的需求比较简单，就是要将每天 500 GB 的数据从 S3 bucket 传输到 Redshift。在 **Q019** 的解析中说明了，Redshift 的 MPP 适合进行并行数据处理，此题中的数据传输正需要利用这一特性。因此拆分大文件，让 Redshift 并行地 LOAD 它们是最快速的方式。不过这里要说明的是，其实 Redshift 的 LOAD 操作本身就会尝试分割 128 MB 或者更大的文件，对于普通 CSV 文件、bzip 压缩的 CSV 文件以及 ORC 和 Parquet 文件，Redshift 都可以自动分割。其他不能自动分割的文件，才会推荐用户手动分割。所以其实选项 B 的做法没有错，但多少有些累赘。参考 [Loading data files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-use-multiple-files.html)。
+这道题的需求比较简单，就是要将每天 500 GB 的数据从 S3 bucket 传输到 Redshift。在 **Q019** 的解析中说明了，Redshift 的 MPP 适合进行并行数据处理，此题中的数据传输正需要利用这一特性。因此拆分大文件，让 Redshift 并行地加载它们是最快速的方式。不过这里要说明的是，其实 Redshift 的  COPY 操作本身就会尝试分割 128 MB 或者更大的文件，对于普通 CSV 文件、bzip 压缩的 CSV 文件以及 ORC 和 Parquet 文件，Redshift 都可以自动分割。其他不能自动分割的文件，才会推荐用户手动分割。所以其实选项 B 的做法没有错，但多少有些累赘。参考 [Loading data files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-use-multiple-files.html)。
 
 选项 A 中，首先 INSERT 不适合做大规模数据的插入，参考 [Amazon Redshift - INSERT - Note](https://docs.aws.amazon.com/redshift/latest/dg/r_INSERT_30.html#Note:~:text=INSERT%20INTO...SELECT%29.-,Note,-We%20strongly%20encourage)。其次压缩 csv 文件会引入额外的处理时间。
 
@@ -1066,3 +1066,250 @@ D. Have the ETL jobs delete the processed objects or data from Amazon S3 after 
 选项 A、C，是可以实现的，但是代码量会很多，不符合要求。
 
 选项 D 肯定是不推荐的，数据工程中，尽量不选择删除历史文件。
+
+## Q041
+
+`#dynamodb` `#redshift` `#security`
+
+A mortgage company has a microservice for accepting payments. This microservice uses the Amazon DynamoDB `encryption client with AWS KMS managed keys` to encrypt the sensitive data before writing the data to DynamoDB. The finance team should be able to `load this data into Amazon Redshift` and aggregate the values within the sensitive fields. The Amazon Redshift cluster is shared with other data analysts from different business units.
+Which steps should a data analyst take to accomplish this task efficiently and securely?
+
+A. Create an AWS Lambda function to process the DynamoDB stream. Decrypt the sensitive data using the same KMS key. Save the output to a restricted S3 bucket for the finance team. Create a finance table in Amazon Redshift that is accessible to the finance team only. Use the COPY command to load the data from Amazon S3 to the finance table.
+
+B. Create an AWS Lambda function to process the DynamoDB stream. Save the output to a restricted S3 bucket for the finance team. Create a finance table in Amazon Redshift that is accessible to the finance team only. Use the COPY command with the IAM role that has access to the KMS key to load the data from S3 to the finance table.
+
+C. Create an Amazon EMR cluster with an EMR_EC2_DefaultRole role that has access to the KMS key. Create Apache Hive tables that reference the data stored in DynamoDB and the finance table in Amazon Redshift. In Hive, select the data from DynamoDB and then insert the output to the finance table in Amazon Redshift.
+
+D. Create an Amazon EMR cluster. Create Apache Hive tables that reference the data stored in DynamoDB. Insert the output to the restricted Amazon S3 bucket for the finance team. Use the COPY command with the IAM role that has access to the KMS key to load the data from Amazon S3 to the finance table in Amazon Redshift.
+
+### Answer - A
+
+题目要求是从 DynamoDB 加载带有敏感信息的数据到 Redshift，同时这些数据只能被 finance team 访问。
+
+首先要确定的是数据是如何进入 Redshift 的：DynamoDB 上的数据是被加密的，要么在读取数据时对其解密，要么就利用 Redshift 的 COPY 操作直接写入被加密的数据。由题中描述可知，该公司使用的是 client-side encryption with KMS key (CSE-KMS)，而 Redshift 的 COPY 操作不支持这种方式加密的数据。因此只能选择在读取 DynamoDB 的时候就对数据解密。因此排除选项 B、D。
+
+选项 C（以及选项 D）的问题在于引入了 EMR 来处理数据，这其实是不必要的。因为对这些数据的处理只涉及到解密的过程，这个需求使用 Lambda 就可实现。EMR with Hive 会将问题复杂化。
+
+而选项 A 就很好地解决了问题，用 Lambda 对 DynamoDB 上的数据进行解密并存储至专有的 S3 bucket，Redshift 上也创建了专有的表，这就保证了数据的私密性。最后利用 COPY 操作写入数据，从而实现需求。
+
+## Q042
+
+`#glue`
+
+A company is building a data lake and needs to `ingest data from a relational database` that has `time-series data`. The company wants to `use managed services` to accomplish this. The process needs to be scheduled daily and bring incremental data only from the source into Amazon S3.
+What is the MOST cost-effective approach to meet these requirements?
+
+A. Use AWS Glue to connect to the data source using JDBC Drivers. Ingest incremental records only using job bookmarks.
+
+B. Use AWS Glue to connect to the data source using JDBC Drivers. Store the last updated key in an Amazon DynamoDB table and ingest the data using the updated key as a filter.
+
+C. Use AWS Glue to connect to the data source using JDBC Drivers and ingest the entire dataset. Use appropriate Apache Spark libraries to compare the dataset, and find the delta.
+
+D. Use AWS Glue to connect to the data source using JDBC Drivers and ingest the full data. Use AWS DataSync to ensure the delta only is written into Amazon S3.
+
+### Answer - A
+
+这道题比较简单，思路和 **Q040** 一样。其他的几个选项都太过麻烦，使用的服务也很复杂。关于 Data Sync，在 **Q013** 中也提到过，更适用于一次性的、不同文件系统间的、文件的迁移。
+
+## Q043
+
+`#redshift` `#security`
+
+An Amazon Redshift database contains sensitive user data. Logging is necessary to meet compliance requirements. The logs `must contain database authentication attempts, connections, and disconnections`. The logs must also `contain each query run against the database and record which database user ran each query`.
+Which steps will create the required logs?
+
+A. Enable Amazon Redshift Enhanced VPC Routing. Enable VPC Flow Logs to monitor traffic.
+
+B. Allow access to the Amazon Redshift database using AWS IAM only. Log access using AWS CloudTrail.
+
+C. Enable audit logging for Amazon Redshift using the AWS Management Console or the AWS CLI.
+
+D. Enable and download audit reports from AWS Artifact.
+
+### Answer - C
+
+从题目要求来看，需要记录的都是所有针对 Redshift 数据库的操作：认证、连接、查询等等。这些操作只能通过 Audit logging 来记录。选项 A 中提到的 VPC flow logs 只能记录访问该 VPC 的网络流量；选项 B 中的 CloudTrail 用来记录 Redshift 集群的配置的修改，例如集群容量的增减、安全组的修改等；选项 D 中的 AWS Artifact 提供按需下载AWS安全和合规性文档，与日志记录没有关系。
+
+## Q044
+
+`#kinesis-data-streams` `#optimization`
+
+A company that monitors weather conditions from remote construction sites is setting up a solution to collect temperature data from the following two weather stations.
+✑ Station A, which has 10 sensors
+✑ Station B, which has five sensors
+These weather stations were placed by onsite subject-matter experts.
+`Each sensor has a unique ID`. The data collected from each sensor will be collected using Amazon Kinesis Data Streams.
+Based on the total incoming and outgoing data throughput, a single Amazon Kinesis data stream with two shards is created. Two partition keys are created `based on the station names`. During testing, there is a bottleneck on data coming from Station A, but not from Station B. Upon review, it is confirmed that the `total stream throughput is still less than the allocated Kinesis Data Streams throughput`.
+How can this bottleneck be resolved without increasing the overall cost and complexity of the solution, while retaining the data collection quality requirements?
+
+A. Increase the number of shards in Kinesis Data Streams to increase the level of parallelism.
+
+B. Create a separate Kinesis data stream for Station A with two shards, and stream Station A sensor data to the new stream.
+
+C. Modify the partition key to use the sensor ID instead of the station name.
+
+D. Reduce the number of sensors in Station A from 10 to 5 sensors.
+
+### Answer - C
+
+这道题是一个很好地关于 Kinesis Data Stream 性能调优的例子。题中的场景也是很典型的。
+
+首先来分析一下问题是怎么产生的。数据来自于两个天气站，每个站点的数据进入一个 shard。但是由于站点 A 的传感器多、数据量大，所以一个 shard 处理不过来，导致了瓶颈的产生。从后面的描述也可看出，整个 stream 的吞吐量还没有达到实际分配的量，也就是说整体的性能没跑满，而单个 shard 又爆表了，这就是所谓的 “hot shard”。
+
+那么这个 hot shard 是如何产生的？原因是数据是按站点名分区的，数据量大的分区自然就 “hot” 了。所以最简单的解决方案就是让数据尽可能平均地分布给每个 shard，另外，对于这种分区的数据，数据倾斜是很常见且需妥善处理的问题。按照 sensor ID 来进行分区会让数据分布平均。
+
+选项 A 提到的增加 shard 数量的确可以减少 hot shard 的负荷，但是它只会使每个 shard 的利用率更低，总吞吐量更加达不到额定值，于是造成更多地浪费。
+
+选项 B 是要新建一个 stream，排除它的原因和上面类似，花费更多，效率更低。
+
+选项 D 是要减少站点 A 的传感器数量，这也是不推荐的，这样会影响到业务，比如数据分析的效果。在解决问题的时候不要影响原本的业务功能是最基本的要求。
+
+对于流服务，我们可以类比日常生活中的水流系统，比如水龙头和水池，这样会比较好理解。关于 hot shard 以及 Kinesis Data Stream scaling 的问题可以参考这篇文章：[Under the hood: Scaling your Kinesis data streams](https://aws.amazon.com/blogs/big-data/under-the-hood-scaling-your-kinesis-data-streams/)。
+
+## Q045
+
+`#s3`
+
+`Once a month`, a company receives a `100 MB .csv file compressed with gzip`. The file contains 50,000 property listing records and is stored in `Amazon S3 Glacier`.
+The company needs its data analyst to `query a subset of the data` for a specific vendor.
+What is the `most cost-effective` solution?
+
+A. Load the data into Amazon S3 and query it with Amazon S3 Select.
+
+B. Query the data from Amazon S3 Glacier directly with Amazon Glacier Select.
+
+C. Load the data to Amazon S3 and query it with Amazon Athena.
+
+D. Load the data to Amazon S3 and query it with Amazon Redshift Spectrum.
+
+### Answer - A
+
+这道题也比较基础，考察如何查询 S3 Glacier 上的数据的子集。选项 B 不合理的原因是 Glacier Select 需要数据是未经压缩的、CSV 文件，题中的文件不符合要求。选项 A、C、D 都是可行的，但是 Athena 或者 Redshift Spectrum 会引入额外不必要的花费（它们都会按照扫描数据量、输出数据量以及查询数量来收费，S3 Select 只按返回数据量收费），同时效率也没有直接用 S3 Select 高。题目中的数据非常简单，每次接入都存放在同一个文件中，不需要做表的连接或者聚合操作，因此使用 S3 Select 就足够了。
+
+## Q046
+
+`#redshift`
+
+A retail company is building its data warehouse solution using Amazon Redshift. As a part of that effort, the company is `loading hundreds of files into the fact table` created in its Amazon Redshift cluster. The company wants the solution to `achieve the highest throughput and optimally use cluster resources` when loading data into the company's fact table.
+How should the company meet these requirements?
+
+A. Use multiple COPY commands to load the data into the Amazon Redshift cluster.
+
+B. Use S3DistCp to load multiple files into the Hadoop Distributed File System (HDFS) and use an HDFS connector to ingest the data into the Amazon Redshift cluster.
+
+C. Use LOAD commands equal to the number of Amazon Redshift cluster nodes and load the data in parallel into each node.
+
+D. Use a single COPY command to load the data into the Amazon Redshift cluster.
+
+### Answer - D
+
+这道题比较有意思，选项 A 和 D 是一对很容易混淆的方案。直觉来看，似乎调用多个 COPY 命令会让 Redshift 并行加载文件，其实不然。相反，COPY 命令本身就会自动并行运行，同时使用多个 COPY 命令反而会让数据加载变成串行的。因此排除选项 A。这是一个很容易记错的点。在 **Q031** 中有提到 COPY 命令对于文件的自动拆分。另外还可参考 [Use a single COPY command to load from multiple files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-single-copy-command.html)。
+
+对于选项 B，整个过程先将数据传到 HDFS，再从 HDFS 传到 Redshift，这明显增加了工作量。
+
+对于选项 C，Redshift 并没有 LOAD 命令。
+
+## Q047
+
+`#athena` `#emr`
+
+A data analyst is designing a solution to `interactively query datasets with SQL using a JDBC connection`. Users will `join data` stored in Amazon S3 in Apache ORC format with data stored in Amazon OpenSearch Service (Amazon Elasticsearch Service) and Amazon Aurora MySQL.
+Which solution will provide the `MOST up-to-date` results?
+
+A. Use AWS Glue jobs to ETL data from Amazon ES and Aurora MySQL to Amazon S3. Query the data with Amazon Athena.
+
+B. Use Amazon DMS to stream data from Amazon ES and Aurora MySQL to Amazon Redshift. Query the data with Amazon Redshift.
+
+C. Query all the datasets in place with Apache Spark SQL running on an AWS Glue developer endpoint.
+
+D. Query all the datasets in place with Apache Presto running on Amazon EMR.
+
+### Answer - D
+
+从题目要求来看，需求是要交互式地查询多个数据源的数据，包括 S3、OpenSearch 和 Aurora MySQL，还需要结果是保持是最新的。那么最理想的方案就是有一个什么服务可以直接连到不同的数据源，直接运行查询，而不是把数据汇总到一个地方再查询。按照这种思路，虽然四个选项都是可行的，但选项 A、B 是需要将数据导出到同一个地方才行，因此暂且排除。
+
+选项 C 的问题在于 Spark SQL 不能直接连到 OpenSearch，可能需要第三方的 connector，多少有些麻烦。
+
+选项 D 是没有问题的，Presto 的功能本身就是同时处理多个数据源的数据。和选项 A、B 再对比一下，选项 D 实现起来简单，不需要经过数据迁移或者 ETL 的步骤，用到的数据自然是最新的。
+
+这道题的答案意外地没有用到 AWS 的数据处理服务，而是依托 EMR 搭建了一个 Presto 服务。其实直接使用 AWS Athena 读取各数据源应该也是可以的，毕竟 Athena 的内核就是 Presto，又是 AWS 原生的服务，连接其他 AWS 服务没有问题。
+
+## Q048
+
+`#opensearch` `#lambda` `#glue`
+
+A company developed a new elections reporting website that uses Amazon Kinesis Data Firehose to `deliver full logs` from AWS WAF to an Amazon S3 bucket.
+The company is now seeking a `low-cost option` to perform this `infrequent data analysis` with `visualizations of logs` in a way that requires `minimal development effort`.
+Which solution meets these requirements?
+
+A. Use an AWS Glue crawler to create and update a table in the Glue data catalog from the logs. Use Athena to perform ad-hoc analyses and use Amazon QuickSight to develop data visualizations.
+
+B. Create a second Kinesis Data Firehose delivery stream to deliver the log files to Amazon OpenSearch Service (Amazon Elasticsearch Service). Use Amazon ES to perform text-based searches of the logs for ad-hoc analyses and use OpenSearch Dashboards (Kibana) for data visualizations.
+
+C. Create an AWS Lambda function to convert the logs into .csv format. Then add the function to the Kinesis Data Firehose transformation configuration. Use Amazon Redshift to perform ad-hoc analyses of the logs using SQL queries and use Amazon QuickSight to develop data visualizations.
+
+D. Create an Amazon EMR cluster and use Amazon S3 as the data source. Create an Apache Spark job to perform ad-hoc analyses and use Amazon QuickSight to develop data visualizations.
+
+### Answer - B?
+
+这道题比较棘手，争议主要在选项 A 和 B 上。先说排除选项 C、D 的原因。主要都是因为引入了太多的外部服务。选项 C 用到了 Lambda 来转换文件格式，用 Redshift 做 ad-hoc 分析，最后用 QuickSight 可视化，这样会使资源和预算不足。选项 D 要用 EMR 来运行 Spark job 来进行分析，增加了开发的难度。
+
+大多数人选择选项 A 的原因是便宜，由于题目中还提到 “infrequent data analysis”，会让人感觉运行的次数并不多，不经常发生。所以用 Glue crawler 来推算数据的 schema，存在 catalog 中，最后再用 Athena 和 QuickSight 来分析和可视化会比较节约。但其实这套流程下来，开发工作量并不小。
+
+我更倾向于选项 B 的原因是，题中更重点的需求是 “minimal development effort”，开发的工作量要小。选项 B 就是一个很直截了当的方案，很好搭建流程。
+
+## Q049
+
+`#glue`
+
+A large company has a `central data lake` to run analytics across different departments. Each department uses a `separate AWS account` and stores its data in an Amazon S3 bucket in that account. Each AWS account uses the AWS Glue Data Catalog as its data catalog. There are `different data lake access requirements based on roles`. Associate analysts should only have read access to their departmental data. Senior data analysts can have access in multiple departments including theirs, but for a `subset of columns only`.
+Which solution achieves these required access patterns to minimize costs and administrative tasks?
+
+A. Consolidate all AWS accounts into one account. Create different S3 buckets for each department and move all the data from every account to the central data lake account. Migrate the individual data catalogs into a central data catalog and apply fine-grained permissions to give to each user the required access to tables and databases in AWS Glue and Amazon S3.
+
+B. Keep the account structure and the individual AWS Glue catalogs on each account. Add a central data lake account and use AWS Glue to catalog data from various accounts. Configure cross-account access for AWS Glue crawlers to scan the data in each departmental S3 bucket to identify the schema and populate the catalog. Add the senior data analysts into the central account and apply highly detailed access controls in the Data Catalog and Amazon S3.
+
+C. Set up an individual AWS account for the central data lake. Use AWS Lake Formation to catalog the cross-account locations. On each individual S3 bucket, modify the bucket policy to grant S3 permissions to the Lake Formation service-linked role. Use Lake Formation permissions to add fine-grained access controls to allow senior analysts to view specific tables and columns.
+
+D. Set up an individual AWS account for the central data lake and configure a central S3 bucket. Use an AWS Lake Formation blueprint to move the data from the various buckets into the central S3 bucket. On each individual bucket, modify the bucket policy to grant S3 permissions to the Lake Formation service-linked role. Use Lake Formation permissions to add fine-grained access controls for both associate and senior analysts to view specific tables and columns.
+
+### Answer - B
+
+题目中场景描述的是，一个中央数据湖需要分析来自多个部门的数据，每个部门有自己单独的 AWS 账户以及 Glue Catalog，还要为不同的分析人员分配不同的访问策略。
+
+一个理想的方案应该是这个数据湖拥有所有部门数据的元数据（即数据湖本身就是所有部门数据的 Catalog），这样在做分析的时候就不需要移动数据；同时，为了访问控制，高级分析人员能够访问到这个中央数据 Catalog，其他分析人员只要保留现有的自己部门数据的访问权限即可。
+
+而麻烦的方案则是，将所有部门的数据移动到同一个账户下再进行 Catalog，或者对每一个部门账户都修改访问设置。前者浪费资金，后者工作量大，浪费时间且易出错。
+
+由以上分析可排除选项 A、D。选项 B、C 之间争议比较多，我更倾向于选择 B。因为选项 B、C 都是要为中央数据湖创建一个单独的账户，但选项 C 多出了一个 Lake Formation 服务，同时还需要逐个修改所有部门的 S3 bucket policy，这无疑会增加很多工作量及支出。而且题目并不是要新建一个数据湖，如果是从头新建数据湖的话，Lake Formation 可能会简单一些。
+
+
+## Q050
+
+`#kinesis-data-streams` `#kinesis-data-firehose` `#kinesis-analytics` `#opensearch`
+
+A company wants to improve user satisfaction for its smart home system by adding more features to its recommendation engine. Each sensor asynchronously pushes its `nested JSON data` into Amazon Kinesis Data Streams using the Kinesis Producer Library (KPL) in Java. Statistics from a set of failed sensors showed that, `when a sensor is malfunctioning, its recorded data is not always sent to the cloud`.
+The company needs a solution that offers `near-real-time analytics` on the data from the most updated sensors.
+Which solution enables the company to meet these requirements?
+
+A. Set the RecordMaxBufferedTime property of the KPL to "0" to disable the buffering on the sensor side. Use Kinesis Data Analytics to enrich the data based on a company-developed anomaly detection SQL script. Push the enriched data to a fleet of Kinesis data streams and enable the data transformation feature to flatten the JSON file. Instantiate a dense storage Amazon Redshift cluster and use it as the destination for the Kinesis Data Firehose delivery stream.
+
+B. Update the sensors code to use the PutRecord/PutRecords call from the Kinesis Data Streams API with the AWS SDK for Java. Use Kinesis Data Analytics to enrich the data based on a company-developed anomaly detection SQL script. Direct the output of KDA application to a Kinesis Data Firehose delivery stream, enable the data transformation feature to flatten the JSON file, and set the Kinesis Data Firehose destination to an Amazon OpenSearch Service (Amazon Elasticsearch Service) cluster.
+
+C. Set the RecordMaxBufferedTime property of the KPL to "0" to disable the buffering on the sensor side. Connect for each stream a dedicated Kinesis Data Firehose delivery stream and enable the data transformation feature to flatten the JSON file before sending it to an Amazon S3 bucket. Load the S3 data into an Amazon Redshift cluster.
+
+D. Update the sensors code to use the PutRecord/PutRecords call from the Kinesis Data Streams API with the AWS SDK for Java. Use AWS Glue to fetch and process data from the stream using the Kinesis Client Library (KCL). Instantiate an Amazon Elasticsearch Service cluster and use AWS Lambda to directly push data into it.
+
+### Answer - B
+
+这道题选项比题目复杂。题中条件很简单，传感器通过 KPL 将其数据以异步的方式传到 Kinesis Data Streams，如果传感器出故障可能会漏传数据。现在需要对最新的数据进行近实时地分析。
+
+首先要分析一下传感器用异步的方式传输数据会发生什么。异步指的是，传感器持续地收集数据，并选恰当时机向 KDS 发送该数据，但并不需要等数据传输完成，只要完成发送动作，传感器就认为发送完成。这样一来，如果传感器和 KDS 之间的链路上有问题，导致数据传输失败，传感器是无从知晓的；同时 KDS 端也会丢失这一次的数据，导致系统所分析的数据不是最新的。
+
+因此要解决这个问题，首先是要保证 KDS 上接收的都是最新数据。这就要求传感器不能再以异步的方式发送数据了，要改成同步的。选项中分了两种方案：一是将 KPL 的 `RecordMaxBufferedTime` 参数设成 0，目的是让 KPL 不再缓存，数据就绪就发出去；二是使用 AWS SDK 里的 `PutRecord/PutRecords` 方法，代替 KPL。前者并没有解决异步发送的问题，而后者是同步的，因此应该用第二种方式。排除选项 A、C。
+
+接下来就是如何近实时地分析数据。其实在 DAS-C01 的考题中，目前遇到的所有提到 “近实时” 的需求，大概率都是和 Kinesis Firehose 或者 OpenSearch 有关的。选项 D 中的 Glue 更适用于批处理。因此选择 B。
+
+另外再补充几点其他选项的问题：
+1. 选项 A，KDS 没有 transformation 的处理功能，除非连入 Lambda。
+2. 选项 D，从 SDK 传入 KDS 的数据不能被 KCL 消费。
