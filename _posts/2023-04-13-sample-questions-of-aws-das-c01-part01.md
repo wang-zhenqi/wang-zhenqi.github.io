@@ -322,7 +322,7 @@ D. Take a full backup of the data store and ship the backup files using AWS Sno
 依次来分析一下几个选项中提到的方案和服务：
 
 1. AWS DataSync：主要是用于文件的迁移，可以在本地文件系统、其他服务商提供的文件系统与 AWS 上的多种文件系统之间进行迁移。常见的用例可以参考[这里](https://docs.aws.amazon.com/datasync/latest/userguide/what-is-datasync.html#use-cases)，可以看到并不适用于整个数据库或是数据仓库的迁移。
-2. DMS：数据库迁移服务，可以从多种源数据库迁移到目标数据库，参考 [[AWS 数据库迁移服务简介]]。
+2. DMS：数据库迁移服务，可以从多种源数据库迁移到目标数据库，参考 **[AWS 数据库迁移服务简介]({{ site.baseurl }}{% link _posts/2023-04-22-introduction-to-aws-dms.md %})**。
 3. AWS Glue：提供 data catalog、data integration and ETL 等服务，正如其名，它非常适合对数据进行编目、处理和集成，就像是胶水一样，将不同来源的数据黏合在一起。
 4. Snowball：将本地数据加载到 S3 上的服务，适用于对大批量的数据进行加载。
 5. AWS Batch：由 AWS 全托管的批处理服务，用户需自定义批处理的程序，使其运行在 AWS 的容器服务上，AWS Batch 会自动为任务分配资源，弹性伸缩。
@@ -684,7 +684,7 @@ D. Send the data to Amazon Kinesis Data Streams. Configure an Amazon Kinesis Da
 
 先说选项 A、C。它们都是利用 Firehose 将数据接入到 S3，再利用 S3 的事件来触发一个 Lambda function，例如每次有新的文件存储到 S3 都会触发 Lambda 来执行分析。但题中所说的 “Configure an S3 event to invoke an AWS Lambda function” 和 “Configure Amazon S3 to initiate an event for AWS Lambda” 在我看来几乎没有什么区别。还好这两个选项都可以排除。原因是 Firehose 在接收数据的时候，首先要将数据缓存起来，当数据量达到 2MB 或者时间达到 60 秒时才会向下游写数据。因此不能满足题目中所说的 30 秒的要求。
 
-至于选项 B、D，大体来讲也差不多，在 **Q024** 的解析中，我简单对比过 KDS 和 MSK 的区别，除了 KDS 有一些 shard 大小方面的限制（读：2MB/s，写：1MB/s），其他功能上都差不多。而且题目中也没有更多的要求，因此这两种服务都是适用的。问题出在 Kinesis Analytics 上，如果使用 SQL application，那么数据来源就只能是 Kinesis Data Streams / Firehose，参见 [Amazon Kinesis Data Analytics features - Kinesis Data Analytics SQL applications - Integrated Input and Output](https://aws.amazon.com/kinesis/data-analytics/features/?nc=sn&loc=2#Integrated_Input_and_Output)。因此答案只能选 D。
+至于选项 B、D，大体来讲也差不多，在 **[Q024]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q024)** 的解析中，我简单对比过 KDS 和 MSK 的区别，除了 KDS 有一些 shard 大小方面的限制（读：2MB/s，写：1MB/s），其他功能上都差不多。而且题目中也没有更多的要求，因此这两种服务都是适用的。问题出在 Kinesis Analytics 上，如果使用 SQL application，那么数据来源就只能是 Kinesis Data Streams / Firehose，参见 [Amazon Kinesis Data Analytics features - Kinesis Data Analytics SQL applications - Integrated Input and Output](https://aws.amazon.com/kinesis/data-analytics/features/?nc=sn&loc=2#Integrated_Input_and_Output)。因此答案只能选 D。
 
 另外要说明的一点是，Kinesis Analytics 是通过 [Schema Discovery](https://docs.aws.amazon.com/kinesisanalytics/latest/dev/sch-dis.html) 自动推断 JSON 数据的 schema 的。也可以通过 [Glue Schema Registry](https://docs.aws.amazon.com/glue/latest/dg/schema-registry.html) 来注册、跟踪 schema 的变化。
 
@@ -820,7 +820,7 @@ D. Load the .csv files in an unsorted key order and vacuum the table in Amazon 
 
 ### Answer - B
 
-这道题的需求比较简单，就是要将每天 500 GB 的数据从 S3 bucket 传输到 Redshift。在 **Q019** 的解析中说明了，Redshift 的 MPP 适合进行并行数据处理，此题中的数据传输正需要利用这一特性。因此拆分大文件，让 Redshift 并行地加载它们是最快速的方式。不过这里要说明的是，其实 Redshift 的  COPY 操作本身就会尝试分割 128 MB 或者更大的文件，对于普通 CSV 文件、bzip 压缩的 CSV 文件以及 ORC 和 Parquet 文件，Redshift 都可以自动分割。其他不能自动分割的文件，才会推荐用户手动分割。所以其实选项 B 的做法没有错，但多少有些累赘。参考 [Loading data files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-use-multiple-files.html)。
+这道题的需求比较简单，就是要将每天 500 GB 的数据从 S3 bucket 传输到 Redshift。在 **[Q019]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q019)** 的解析中说明了，Redshift 的 MPP 适合进行并行数据处理，此题中的数据传输正需要利用这一特性。因此拆分大文件，让 Redshift 并行地加载它们是最快速的方式。不过这里要说明的是，其实 Redshift 的  COPY 操作本身就会尝试分割 128 MB 或者更大的文件，对于普通 CSV 文件、bzip 压缩的 CSV 文件以及 ORC 和 Parquet 文件，Redshift 都可以自动分割。其他不能自动分割的文件，才会推荐用户手动分割。所以其实选项 B 的做法没有错，但多少有些累赘。参考 [Loading data files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-use-multiple-files.html)。
 
 选项 A 中，首先 INSERT 不适合做大规模数据的插入，参考 [Amazon Redshift - INSERT - Note](https://docs.aws.amazon.com/redshift/latest/dg/r_INSERT_30.html#Note:~:text=INSERT%20INTO...SELECT%29.-,Note,-We%20strongly%20encourage)。其次压缩 csv 文件会引入额外的处理时间。
 
@@ -979,7 +979,6 @@ D. Select Amazon S3 as the endpoint for Kinesis Data Firehose. Use AWS Glue to 
 
 同理，选项 C、D 都用到了太多其他的服务，比如 Firehose -> Redshift -> QuickSight SPICE，其中每一步都涉及到数据传输。而且 QuickSight 上的展示的数据需要定时刷新，时间间隔至少为每小时（企业版，普通版至少是每天）。参考 [Refreshing SPICE data](https://docs.aws.amazon.com/quicksight/latest/user/refreshing-imported-data.html)。
 
-
 ## Q038
 
 `#ecr` `#optimization`
@@ -1017,7 +1016,6 @@ CapacityRemainingGB 指的是 HDFS 上剩余的空间；YARNMemoryAvailablePerce
 
 需要说明的是，这道题的背景可能是较早版本的 AWS EMR 服务，当时的 instance fleet 是不支持 automatic scaling 的。但现在的版本已经将 automatic scaling 改成了 EMR managed scaling。EMR managed scaling 可以不需要用户提前预测集群的使用容量，不需要手动编写规则，而是利用内置的算法，自动地检测集群运行的情况，自动地伸缩集群容量。它和 automatic scaling 的区别见 [EMR Managed Scaling vs. Auto Scaling](https://aws.amazon.com/blogs/big-data/introducing-amazon-emr-managed-scaling-automatically-resize-clusters-to-lower-cost/#:~:text=emr%20managed%20scaling%20vs.%20auto%20scaling)。
 
-
 ## Q039
 
 `#emr` `#s3` `#optimization`
@@ -1035,14 +1033,13 @@ D. Redeploy the EMR clusters that are running slowly to a different Availabilit
 
 ### Answer - C
 
-这道题也是一个较早期的的题目，Amazon S3 早已支持了 strongly consistent，所以 EMRFS 上不再需要设置 consistent view 来保证文件的一致性（在 **Q003** 中已提到过）。不过仍然可以分析一下这道题目。题目的前提是，EMRFS 的 consistent view 已启用，日志文件在 S3 的存储类型是 One Zone - Infrequent。
+这道题也是一个较早期的的题目，Amazon S3 早已支持了 strongly consistent，所以 EMRFS 上不再需要设置 consistent view 来保证文件的一致性（在 **[Q003]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q003)** 中已提到过）。不过仍然可以分析一下这道题目。题目的前提是，EMRFS 的 consistent view 已启用，日志文件在 S3 的存储类型是 One Zone - Infrequent。
 
 题中已明确指出，造成性能问题的原因是 EMR 在对 S3 执行 *list objects* 操作时所需时间越来越长。那么 list objects 操作需要经过哪些过程呢？根据 EMRFS consistent view 的特性，不难推测出，EMR 首先需要获取到 S3 上的文件列表，再去 DynamoDB 中查看文件的元数据，然后对比元数据和 S3 上文件的差别，判断是否已经是一致的，最后才能列出该文件。这里的瓶颈就在于读取 DynamoDB 的元数据，因为 DynamoDB 是有性能限制的，读操作消耗 RCU，如果 RCU 设置得太小，则会使读性能受限。因此增加 RCU 是有可能改善整个操作性能的。
 
 选项 A 是优化 S3 的并行度的，一个 prefix 每秒支持 5500 次读请求，如果添加前缀的数量，就可以同时进行更多次的读请求。但在 EMR consistent view 下，即使读到了数据，依然需要对比 DynamoDB 中的元数据，不提高 RCU，性能依旧提升不了。
 
 选项 B 中提到了 S3 的存储类型，这些存储类型主要是改变了文件的可访问性从而减少不常访问的文件所需的费用。选项 D 与题中的性能没有直接关系。
-
 
 ## Q040
 
@@ -1061,7 +1058,7 @@ D. Have the ETL jobs delete the processed objects or data from Amazon S3 after 
 
 ### Answer - B
 
-基础题，Glue 的 job bookmarks 就是用来记录之前的执行情况的，这样新一轮的运行就可以在之前的基础上进行，达到增量的目的。关于 job bookmarks，在 **Q005** 中也已提到过。
+基础题，Glue 的 job bookmarks 就是用来记录之前的执行情况的，这样新一轮的运行就可以在之前的基础上进行，达到增量的目的。关于 job bookmarks，在 **[Q005]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q005)** 中也已提到过。
 
 选项 A、C，是可以实现的，但是代码量会很多，不符合要求。
 
@@ -1109,7 +1106,7 @@ D. Use AWS Glue to connect to the data source using JDBC Drivers and ingest the
 
 ### Answer - A
 
-这道题比较简单，思路和 **Q040** 一样。其他的几个选项都太过麻烦，使用的服务也很复杂。关于 Data Sync，在 **Q013** 中也提到过，更适用于一次性的、不同文件系统间的、文件的迁移。
+这道题比较简单，思路和 **[Q040]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q040)** 一样。其他的几个选项都太过麻烦，使用的服务也很复杂。关于 Data Sync，在 **[Q013]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q013)** 中也提到过，更适用于一次性的、不同文件系统间的、文件的迁移。
 
 ## Q043
 
@@ -1203,7 +1200,7 @@ D. Use a single COPY command to load the data into the Amazon Redshift cluster.
 
 ### Answer - D
 
-这道题比较有意思，选项 A 和 D 是一对很容易混淆的方案。直觉来看，似乎调用多个 COPY 命令会让 Redshift 并行加载文件，其实不然。相反，COPY 命令本身就会自动并行运行，同时使用多个 COPY 命令反而会让数据加载变成串行的。因此排除选项 A。这是一个很容易记错的点。在 **Q031** 中有提到 COPY 命令对于文件的自动拆分。另外还可参考 [Use a single COPY command to load from multiple files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-single-copy-command.html)。
+这道题比较有意思，选项 A 和 D 是一对很容易混淆的方案。直觉来看，似乎调用多个 COPY 命令会让 Redshift 并行加载文件，其实不然。相反，COPY 命令本身就会自动并行运行，同时使用多个 COPY 命令反而会让数据加载变成串行的。因此排除选项 A。这是一个很容易记错的点。在 **[Q031]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q031)** 中有提到 COPY 命令对于文件的自动拆分。另外还可参考 [Use a single COPY command to load from multiple files](https://docs.aws.amazon.com/redshift/latest/dg/c_best-practices-single-copy-command.html)。
 
 对于选项 B，整个过程先将数据传到 HDFS，再从 HDFS 传到 Redshift，这明显增加了工作量。
 
