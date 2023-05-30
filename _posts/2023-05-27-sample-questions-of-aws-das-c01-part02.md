@@ -106,3 +106,153 @@ D. Store the last 2 months of data in Amazon Redshift and the rest of the month
 排除选项 D 的原因是这里使用 EMR 就浪费了 Redshift 的资源，Redshift 原本就是为大数据数仓而设计的，很适合 TB 级甚至 PB 级数据的查询。EMR 在这里做的无非也就是这些。一般来说，对于 “cost-effective” 或者 “minimal development effort” 这样的需求，如果 AWS 已经有了现成的解决方案，就尽量不选择 EMR。
 
 再补充一点，选项 C 中提到把所有的数据都存入 S3，然后利用 Redshift Spectrum 做查询。对于这么大的数据量以及如此频繁的查询来说，就意味着每小时都需要对几百 TB 的数据进行一次扫描，这个花销是很大的。这也是要把频繁访问与偶尔访问的数据分隔开的原因。关于 Redshift Spectrum 的收费以及最佳实践可以参考这篇文档：[How do I calculate the query charges in Amazon Redshift Spectrum?](https://repost.aws/knowledge-center/redshift-spectrum-query-charges)
+
+## Q055
+
+`#glue` `#s3` `#athena` `#redshift` `#emr`
+
+A media company wants to perform machine learning and analytics on the data residing in its `Amazon S3 data lake`. There are two data transformation requirements that will enable the consumers within the company to create reports:
+✑ `Daily transformations of 300 GB of data` with `different file formats landing` in Amazon S3 at a scheduled time.
+✑ `One-time transformations of terabytes of archived data` residing in the S3 data lake.
+Which combination of solutions `cost-effectively` meets the company's requirements for transforming the data? (Choose three.)
+
+A. For daily incoming data, use AWS Glue crawlers to scan and identify the schema.
+
+B. For daily incoming data, use Amazon Athena to scan and identify the schema.
+
+C. For daily incoming data, use Amazon Redshift to perform transformations.
+
+D. For daily incoming data, use AWS Glue workflows with AWS Glue jobs to perform transformations.
+
+E. For archived data, use Amazon EMR to perform data transformations.
+
+F. For archived data, use Amazon SageMaker to perform data transformations.
+
+### Answer - ADE
+
+这道题比较简单，考察数据 ETL 时选用什么服务。每天都有 300 GB 的不同格式的文件需要进入数据湖，那么文件的 schema 最好是能自动识别，所以要用 Glue crawlers，而 Athena 不能识别 schema，因此排除选项 B。
+
+识别了 schema 之后需要将数据传入 S3，Redshift 是一个数仓工具，不适合做数据的传输，适合做传输的是 Glue workflow，利用 glue job 来进行调度和传输。因此排除选项 C。
+
+对于历史数据来说，使用 EMR 比 SageMaker 更为合适，因为后者是一个机器学习的平台，它适合对数据进行模型的构建、学习和部署，但不适用于数据的传输。而 EMR 上可以搭建各种适用的传输工具，因此排除选项 F。
+
+## Q056
+
+`#kinesis-data-streams` `#kinesis-data-firehose` `#lambda` `#s3`
+
+A hospital uses wearable medical sensor devices to collect data from patients. The hospital is architecting a `near-real-time solution` that can `ingest the data securely at scale`. The solution should also be able to `remove the patient's protected health information (PHI)` from the streaming data and store the data in `durable storage`.
+Which solution meets these requirements with the `least operational overhead`?
+
+A. Ingest the data using Amazon Kinesis Data Streams, which invokes an AWS Lambda function using Kinesis Client Library (KCL) to remove all PHI. Write the data in Amazon S3.
+
+B. Ingest the data using Amazon Kinesis Data Firehose to write the data to Amazon S3. Have Amazon S3 trigger an AWS Lambda function that parses the sensor data to remove all PHI in Amazon S3.
+
+C. Ingest the data using Amazon Kinesis Data Streams to write the data to Amazon S3. Have the data stream launch an AWS Lambda function that parses the sensor data and removes all PHI in Amazon S3.
+
+D. Ingest the data using Amazon Kinesis Data Firehose to write the data to Amazon S3. Implement a transformation AWS Lambda function that parses the sensor data to remove all PHI.
+
+### Answer - D
+
+题目要求近实时地将数据导入一个持久存储的服务中，同时还要删去敏感信息。从之前的那些题目中来看，一般提到 “近实时” 大概率是和 kinesis data firehose 有关的。题目中的选项里涉及到了 kinesis data streams 和 kinesis data firehose，我们可以辨别一下是否能排除 kinesis data streams 的选项。
+
+在题中描述的数据接入的场景中，我们应该能分析出一共需要以下三个步骤：
+
+1. 用某个工具接到数据
+2. 对数据进行处理，删除敏感信息
+3. 将数据存入 S3（持久存储）
+
+步骤二要在步骤三之前的原因是，这样避免了数据已经落盘再进行处理所造成的资源（主要是数据读写工作）的浪费，而且也是为了数据安全，敏感信息应该尽早去除，不要存放在持久存储服务中。由此可以排除选项 B、C。
+
+选项 A 也是一种可行的办法，但和选项 D 相比，它会更复杂一些。因为如果使用 KCL 来处理数据，还需用 DynamoDB 记录处理进度，所以需要额外的支出，并且要为 DynamoDB 分配资源，这会增加运维的开销。因此排除选项 A。
+
+## Q057
+
+`#emr` `#security`
+
+A company is `migrating its existing on-premises ETL jobs to Amazon EMR`. The code consists of a series of jobs written in Java. The company needs to `reduce overhead` for the system administrators `without changing the underlying code`. Due to the sensitivity of the data, compliance requires that the company `use root device volume encryption on all nodes` in the cluster. Corporate standards require that `environments be provisioned through AWS CloudFormation` when possible.
+Which solution satisfies these requirements?
+
+A. Install open-source Hadoop on Amazon EC2 instances with encrypted root device volumes. Configure the cluster in the CloudFormation template.
+
+B. Use a CloudFormation template to launch an EMR cluster. In the configuration section of the cluster, define a bootstrap action to enable TLS.
+
+C. Create a custom AMI with encrypted root device volumes. Configure Amazon EMR to use the custom AMI using the CustomAmild property in the CloudFormation template.
+
+D. Use a CloudFormation template to launch an EMR cluster. In the configuration section of the cluster, define a bootstrap action to encrypt the root device volume of every node.
+
+### Answer - C
+
+按题目要求，需要对每个节点都进行 root volume encryption，同时还要用 CloudFormation 来搭建 EMR 的集群环境。所以用户应该先自定义一个对 root volume 加密的 AMI，然后再令 CloudFormation 使用该 AMI 来创建 EMR 集群。
+
+选项 A 要使用开源的 Hadoop，CloudFormation 不支持这个选项。另外这个方式也会涉及到很多的运维开销。
+
+选项 B 提到启用 TLS，但并没有说如何加密 root volume。
+
+选项 D 提到使用 bootstrap action 对 root volume 加密，理论上是可行的，但是需要的配置、运维花销会很大。
+
+关于题中的 root volume encryption 场景，官方文档中有提到解决方案：[Using a custom AMI](https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-custom-ami.html)。还有一篇文章供参考：[How do I set the properties of a root volume for an Amazon EC2 instance that I created using an AWS CloudFormation template?](https://repost.aws/knowledge-center/cloudformation-root-volume-property)。
+
+## Q058
+
+`#s3` `#redshift` `#athena`
+
+A transportation company uses IoT sensors attached to trucks to collect vehicle data for its global delivery fleet. The company currently sends the sensor data in `small .csv files to Amazon S3`. The files are then loaded into a `10-node Amazon Redshift cluster` with `two slices per node` and queried using both Amazon Athena and Amazon Redshift. The company wants to `optimize the files` to `reduce the cost of querying` and also `improve the speed of data loading` into the Amazon Redshift cluster.
+Which solution meets these requirements?
+
+A. Use AWS Glue to convert all the files from .csv to a single large Apache Parquet file. COPY the file into Amazon Redshift and query the file with Athena from Amazon S3.
+
+B. Use Amazon EMR to convert each .csv file to Apache Avro. COPY the files into Amazon Redshift and query the file with Athena from Amazon S3.
+
+C. Use AWS Glue to convert the files from .csv to a single large Apache ORC file. COPY the file into Amazon Redshift and query the file with Athena from Amazon S3.
+
+D. Use AWS Glue to convert the files from .csv to Apache Parquet to create 20 Parquet files. COPY the files into Amazon Redshift and query the files with Athena from Amazon S3.
+
+### Answer - D
+
+类似的关于 LOAD 数据到 Redshift 中的题目，已经见过很多次了（见 [Q019]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q019)、[Q031]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q031)、[Q046]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q046)）。重点就是要利用 Redshift 的 MPP，并行地加载数据。同时还要利用列式存储的优势，将文件转为列式存储的格式（Avro 是行式存储）。
+
+## Q059
+
+`#kinesis-data-firehose` `#kinesis-data-streams` `#opensearch`
+
+An online retail company with millions of users around the globe wants to improve its e-commerce analytics capabilities. Currently, clickstream data is uploaded directly `to Amazon S3 as compressed files`. `Several times each day`, an application running on Amazon EC2 processes the data and makes search options and reports available for visualization by editors and marketers. The company wants to make website clicks and aggregated data `available to editors and marketers in minutes` to enable them to connect with users more effectively.
+Which options will help meet these requirements in the MOST efficient way？ (Choose two.)
+
+A. Use Amazon Kinesis Data Firehose to upload compressed and batched clickstream records to Amazon OpenSearch Service (Amazon Elasticsearch Service).
+
+B. Upload clickstream records to Amazon S3 as compressed files. Then use AWS Lambda to send data to Amazon OpenSearch Service (Amazon Elasticsearch Service) from Amazon S3.
+
+C. Use Amazon OpenSearch Service (Amazon Elasticsearch Service) deployed on Amazon EC2 to aggregate, filter, and process the data. Refresh content performance dashboards in near-real time.
+
+D. Use OpenSearch Dashboards (Kibana) to aggregate, filter, and visualize the data stored in Amazon OpenSearch Service (Amazon Elasticsearch Service). Refresh content performance dashboards in near-real time.
+
+E. Upload clickstream records from Amazon S3 to Amazon Kinesis Data Streams and use a Kinesis Data Streams consumer to send records to Amazon OpenSearch Service (Amazon Elasticsearch Service).
+
+### Answer - AD
+
+题目中提到了 “available in minutes” 其实就暗示了这是一个近实时地场景，在这个场景下，用 kinesis data firehose 将数据接入 OpenSearch，再用 OpenSearch 进行分析、查找以及可视化是最高效的解决方案。
+
+其他两个关于数据接入的选项中，选项 B 更适合做一个实时的方案，选项 E 中 kinesis data streams 不能直接将数据输出到 OpenSearch 中。
+
+## Q060
+
+`#kinesis-data-streams`
+
+A company is streaming its high-volume billing data (`100 MBps`) to Amazon Kinesis Data Streams. A data analyst `partitioned the data on account_id` to ensure that all records belonging to an account go to the same Kinesis shard and order is maintained. While building a custom consumer using the Kinesis Java SDK, the data analyst notices that, sometimes, `the messages arrive out of order for account_id`. Upon further investigation, the data analyst discovers `the messages that are out of order seem to be arriving from different shards for the same account_id and are seen when a stream resize runs`.
+What is an explanation for this behavior and what is the solution?
+
+A. There are multiple shards in a stream and order needs to be maintained in the shard. The data analyst needs to make sure there is only a single shard in the stream and no stream resize runs.
+
+B. The hash key generation process for the records is not working correctly. The data analyst should generate an explicit hash key on the producer side so the records are directed to the appropriate shard accurately.
+
+C. The records are not being received by Kinesis Data Streams in order. The producer should use the PutRecords API call instead of the PutRecord API call with the SequenceNumberForOrdering parameter.
+
+D. The consumer is not processing the parent shard completely before processing the child shards after a stream resize. The data analyst should process the parent shard completely first before processing the child shards.
+
+### Answer - D
+
+这道题看起来比较复杂，但实际上描述的场景很典型，就是由于 kinesis data streams 进行了 resize，导致数据流中的数据乱序了。根本原因就如选项 D 所说，在 resize 的时候，parent shard 里的数据尚未完全消费就开始消费 child shards 中的数据了。
+
+其他几个选项的原因分析得都不对。选项 A 说应该只保留一个 shard，这样顺序是保证了，但是效率却降下来了。选项 B 说是 hash 函数运行得有问题，hash 函数是用在给 account_id 分区的时候，相同的 account_id 会有相同的 hash 值，这个一般是不会出错的，而且更不会总是出错。选项 C 说 KDS 接到数据的时候就是乱序的，如果是这样的话，乱序就不会只发生在 resize 运行的时候。
+
+另外，KCL 自带 resize 的处理逻辑，这里如果弃用 SDK 而改用 KCL 就会解决这个问题。用 SDK 来实现 resize 的处理会有些复杂。
