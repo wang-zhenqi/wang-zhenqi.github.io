@@ -209,7 +209,7 @@ D. Use AWS Glue to convert the files from .csv to Apache Parquet to create 20 P
 
 ### Answer - D
 
-类似的关于 LOAD 数据到 Redshift 中的题目，已经见过很多次了（见 [Q019]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q019)、[Q031]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q031)、[Q046]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q046)）。重点就是要利用 Redshift 的 MPP，并行地加载数据。同时还要利用列式存储的优势，将文件转为列式存储的格式（Avro 是行式存储）。
+类似的关于 LOAD 数据到 Redshift 中的题目，已经见过很多次了（见 [Q019]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q019)、[Q031]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q031)、[Q035]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q035)、[Q046]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q046)）。重点就是要利用 Redshift 的 MPP，并行地加载数据。同时还要利用列式存储的优势，将文件转为列式存储的格式（Avro 是行式存储）。
 
 ## Q059
 
@@ -256,3 +256,102 @@ D. The consumer is not processing the parent shard completely before processing
 其他几个选项的原因分析得都不对。选项 A 说应该只保留一个 shard，这样顺序是保证了，但是效率却降下来了。选项 B 说是 hash 函数运行得有问题，hash 函数是用在给 account_id 分区的时候，相同的 account_id 会有相同的 hash 值，这个一般是不会出错的，而且更不会总是出错。选项 C 说 KDS 接到数据的时候就是乱序的，如果是这样的话，乱序就不会只发生在 resize 运行的时候。
 
 另外，KCL 自带 resize 的处理逻辑，这里如果弃用 SDK 而改用 KCL 就会解决这个问题。用 SDK 来实现 resize 的处理会有些复杂。
+
+## Q061
+
+`#kinesis-data-streams` `#lambda` `#opensearch` `#glue`
+
+A media analytics company consumes a stream of social media posts. The posts are sent to an Amazon Kinesis data stream `partitioned on user_id`. An AWS  
+`Lambda function retrieves the records and validates the content` before loading the posts into an Amazon OpenSearch Service (Amazon Elasticsearch Service) cluster. The validation process `needs to receive the posts for a given user in the order` they were received by the Kinesis data stream.
+During peak hours, the social media posts take more than an hour to appear in the Amazon OpenSearch Service (Amazon ES) cluster. A data analytics specialist must implement a solution that `reduces this latency` with the `least possible operational overhead`.
+Which solution meets these requirements?
+
+A. Migrate the validation process from Lambda to AWS Glue.
+
+B. Migrate the Lambda consumers from standard data stream iterators to an HTTP/2 stream consumer.
+
+C. Increase the number of shards in the Kinesis data stream.
+
+D. Send the posts stream to Amazon Managed Streaming for Apache Kafka instead of the Kinesis data stream.
+
+### Answer - C
+
+分析题目场景可知，出现性能问题的原因是在高峰时段数据量大导致数据处理不过来。那么为了提高数据处理性能，最简单直接的方式就是增加处理节点，并行运算。题中的数据处理架构如下图所示：
+
+![das-c01-q061-data-processing-architecture](https://zhenqi-imagebed.s3.ap-east-1.amazonaws.com/uploaded_date=2023-06/das-c01-q061-bae772baaed79bd54532df1f9538362a.jpg)
+
+每次 Lambda 调用都可以处理来自一个 Kinesis shard 的数据。因此如果增加 shard 数量的话，就会并行地调用多个 Lambda 方法来处理多组数据，由此提升数据处理性能（如图中虚线部分所示）。
+
+那么其他几个选项有什么问题呢？选项 A 用到 Glue，它背后的运行环境是 Spark，确实有可能达到比 Lambda 更快的运算速度，但是开发难度也会增加，在有更简单方案的时候可以不选它。选项 D 主要是更换了数据管道的服务，增加了运维以及开发的难度，但并不能保证效率的提升。选项 B 也类似，HTTP/2 的方式其实是用到了 Kinesis Data Streams 的 enhanced fan-out 特性，提升了数据传输速度（带宽），看起来似乎可以解决高峰时期数据量大的问题。但这个方案并没有抓住性能瓶颈的根因，只提升数据传输速度不能解决问题。
+
+## Q062
+
+`#kinesis-data-streams` `#optimization`
+
+A company launched a service that `produces millions of messages every day` and uses Amazon Kinesis Data Streams as the streaming service.
+The company `uses the Kinesis SDK to write data` to Kinesis Data Streams. A few months after launch, a data analyst found that `write performance is significantly reduced`. The data analyst investigated the metrics and determined that `Kinesis is throttling the write requests`. The data analyst wants to address this issue `without significant changes to the architecture`.
+Which actions should the data analyst take to resolve this issue? (Choose two.)  
+
+A. Increase the Kinesis Data Streams retention period to reduce throttling.
+
+B. Replace the Kinesis API-based data ingestion mechanism with Kinesis Agent.
+
+C. Increase the number of shards in the stream using the UpdateShardCount API.
+
+D. Choose partition keys in a way that results in a uniform record distribution across shards.
+
+E. Customize the application code to include retry logic to improve performance.
+
+### Answer - CD
+
+按题目中，服务上线几个月后才出现写数据性能降低，再考虑到 Kinesis SDK 写数据时相同 partition key 会进入同一个 shard，可以想到性能问题有可能是因为数据量太多，现有 shard 数量太少，因此阻碍了数据写入，也可能是出现了 hot shard。因此可以尝试增加 shard 数量，并且让 partition key 均匀分布以解决问题，即选择选项 C、D。
+
+选项 A、E 都只是增加数据在 Kinesis Stream 中的存活时间，但均不能解决数据太多或是 hot shard 的问题，因此这两种方案意义不大。选项 B 是用 Kinesis Agent 来代替 SDK，同样不能解决这两个问题。
+
+## Q063
+
+`#kinesis-data-streams` `#emr` `#glue` `#kinesis-data-firehose` `#lambda`
+
+A smart home automation company must efficiently ingest and process messages from various connected devices and sensors. The majority of these messages are `comprised of a large number of small files`. These messages are ingested using Amazon Kinesis Data Streams and sent to Amazon S3 using a Kinesis data stream consumer application. The Amazon S3 message data is then passed through `a processing pipeline built on Amazon EMR running scheduled PySpark jobs`.
+The data platform team manages data processing and is concerned about the `efficiency and cost of downstream data processing`. They want to continue to use  
+PySpark.
+Which solution improves the efficiency of the data processing jobs and is well architected?
+
+A. Send the sensor and devices data directly to a Kinesis Data Firehose delivery stream to send the data to Amazon S3 with Apache Parquet record format conversion enabled. Use Amazon EMR running PySpark to process the data in Amazon S3.
+
+B. Set up an AWS Lambda function with a Python runtime environment. Process individual Kinesis data stream messages from the connected devices and sensors using Lambda.
+
+C. Launch an Amazon Redshift cluster. Copy the collected data from Amazon S3 to Amazon Redshift and move the data processing jobs from Amazon EMR to Amazon Redshift.
+
+D. Set up AWS Glue Python jobs to merge the small data files in Amazon S3 into larger files and transform them to Apache Parquet format. Migrate the downstream PySpark jobs from Amazon EMR to AWS Glue.
+
+### Answer - D
+
+通过题目要求 “需要继续使用 PySpark” 可以排除选项 C，因为 Redshift 不能运行 PySpark 程序。选项 B 提到用 Lambda 运行 Python 脚本来处理每一条来自 Kinesis Data Streams 的数据，这个方案改变了整个系统的运行方式，从定时调度的批处理变成了持续运行的流处理。题目中没有相关要求，同时这种处理方式既不经济，又没有明显地提示说比批处理强，因此排除选项 B。
+
+这道题的争议主要是选项 A、D 之间，它们都是可实现的。选项 A 采用 Kinesis Data Firehose 代替了 Kinesis Data Streams 来接入数据，在接入的过程中还能顺便将文件转为 Parquet 格式。但笔者认为它的问题在于没有减少 EMR 所造成的花销，另外对于小文件也没有处理，顶多是靠 Firehose 自身的延时来合并若干记录为一个文件。
+
+而选项 D 用 Glue 来代替了 EMR，更好地运用了其自身的运算资源以及调度系统，保留了 PySpark 的使用，减少了开销，同时还合并了大量小文件，为下游的处理做好了准备。这个选项笔者认为更适合题中场景。
+
+## Q064
+
+`#s3` `#redshift`
+
+A large financial company is running its ETL process. Part of this process is to `move data from Amazon S3 into an Amazon Redshift cluster`. The company wants to use the `most cost-efficient` method to load the dataset into Amazon Redshift.
+Which combination of steps would meet these requirements? (Choose two.)
+
+A. Use the COPY command with the manifest file to load data into Amazon Redshift.
+
+B. Use S3DistCp to load files into Amazon Redshift.
+
+C. Use temporary staging tables during the loading process.
+
+D. Use the UNLOAD command to upload data into Amazon Redshift.
+
+E. Use Amazon Redshift Spectrum to query files from Amazon S3.
+
+### Answer - AC
+
+又是一道考察 Redshift COPY 数据的题目，之前已经在  [Q019]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q019)、[Q031]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q031)、[Q035]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q035)、[Q046]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q046) 以及 [Q058]({{ site.baseurl }}{% link _posts/2023-05-27-sample-questions-of-aws-das-c01-part02.md %}#q058) 中见到过了，选项 A 肯定是正确答案之一。选项 C 提到在载入数据的过程中使用用临时的 staging table，它的好处是帮助执行 upsert 操作，可参考 [Q006]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q006) 中的解释。因此这道题的答案是选项 A、C。
+
+选项 B 主要是用于 S3 和 HDFS 之间的文件传输。选项 D 是将数据从 Redshift 到处到 S3 的。选项 E 并不涉及数据传输，不符合题目要求。
