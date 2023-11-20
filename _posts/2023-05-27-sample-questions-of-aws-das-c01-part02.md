@@ -355,3 +355,5 @@ E. Use Amazon Redshift Spectrum to query files from Amazon S3.
 又是一道考察 Redshift COPY 数据的题目，之前已经在  [Q019]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q019)、[Q031]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q031)、[Q035]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q035)、[Q046]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q046) 以及 [Q058]({{ site.baseurl }}{% link _posts/2023-05-27-sample-questions-of-aws-das-c01-part02.md %}#q058) 中见到过了，选项 A 肯定是正确答案之一。选项 C 提到在载入数据的过程中使用用临时的 staging table，它的好处是帮助执行 upsert 操作，可参考 [Q006]({{ site.baseurl }}{% link _posts/2023-04-13-sample-questions-of-aws-das-c01-part01.md %}#q006) 中的解释。因此这道题的答案是选项 A、C。
 
 选项 B 主要是用于 S3 和 HDFS 之间的文件传输。选项 D 是将数据从 Redshift 到处到 S3 的。选项 E 并不涉及数据传输，不符合题目要求。
+
+另外可参考这篇文章了解在 Redshift 上进行 ETL 的最佳实践：[Top 8 Best Practices for High-Performance ETL Processing Using Amazon Redshift](https://aws.amazon.com/blogs/big-data/top-8-best-practices-for-high-performance-etl-processing-using-amazon-redshift/)。
