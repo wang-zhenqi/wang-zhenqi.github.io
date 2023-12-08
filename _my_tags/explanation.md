@@ -1,4 +1,0 @@
----
-slug: explanation
-name: explanation
----

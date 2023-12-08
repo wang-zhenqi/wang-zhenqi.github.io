@@ -1,4 +1,0 @@
----
-slug: reference
-name: reference
----

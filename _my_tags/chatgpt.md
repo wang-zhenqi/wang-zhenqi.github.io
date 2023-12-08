@@ -1,4 +1,0 @@
----
-slug: chatgpt
-name: chatgpt
----
