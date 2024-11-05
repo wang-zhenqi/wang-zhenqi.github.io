@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>Why does it work? | Python 代码中应避免将函数参数的默认值定义为可变对象</title>
+  <meta name="description" content="本文主要分析了 Python 的可变对象与不可变对象的区别，赋值操作与对象的引用，以及为什么不建议将函数参数的默认值设定为可变对象">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="Python 代码中应避免将函数参数的默认值定义为可变对象">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://wang-zhenqi.github.io/posts/python-%E4%BB%A3%E7%A0%81%E4%B8%AD%E5%BA%94%E9%81%BF%E5%85%8D%E5%B0%86%E5%87%BD%E6%95%B0%E5%8F%82%E6%95%B0%E7%9A%84%E9%BB%98%E8%AE%A4%E5%80%BC%E5%AE%9A%E4%B9%89%E4%B8%BA%E5%8F%AF%E5%8F%98%E5%AF%B9%E8%B1%A1">
+  <meta property="og:description" content="本文主要分析了 Python 的可变对象与不可变对象的区别，赋值操作与对象的引用，以及为什么不建议将函数参数的默认值设定为可变对象">
+  <meta property="og:site_name" content="Why does it work?">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:url" content="https://wang-zhenqi.github.io/posts/python-%E4%BB%A3%E7%A0%81%E4%B8%AD%E5%BA%94%E9%81%BF%E5%85%8D%E5%B0%86%E5%87%BD%E6%95%B0%E5%8F%82%E6%95%B0%E7%9A%84%E9%BB%98%E8%AE%A4%E5%80%BC%E5%AE%9A%E4%B9%89%E4%B8%BA%E5%8F%AF%E5%8F%98%E5%AF%B9%E8%B1%A1">
+  <meta name="twitter:title" content="Python 代码中应避免将函数参数的默认值定义为可变对象">
+  <meta name="twitter:description" content="本文主要分析了 Python 的可变对象与不可变对象的区别，赋值操作与对象的引用，以及为什么不建议将函数参数的默认值设定为可变对象">
+
+  
+    <meta property="og:image" content="https://wang-zhenqi.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+    <meta name="twitter:image" content="https://wang-zhenqi.github.io/assets/og-image-ee46bbc61b334e821e81534b1fd43f3fee6f020ec174b3c2114445695fd48c01.jpg">
+  
+
+  <link href="https://wang-zhenqi.github.io/feed.xml" type="application/rss+xml" rel="alternate" title="Why does it work? Last 10 blog posts" />
+
+  
+
+  
+
+    
+      <link rel="icon" type="image/x-icon" href="/assets/favicon-light-a98c41efc5ed9fcc06ac664c9e2f7a9b3c3b2e0a52357d221fe382f6f4abc8fc.ico">
+      <link rel="apple-touch-icon" href="/assets/apple-touch-icon-light-87d1f2a3a19b1500e5c1626a0492025ca5f7f97d24540dc5900288e92112925a.png">
+      <link rel="stylesheet" type="text/css" title="light" id="light" href="/assets/light-bb1553a18d0f1ccfe1aabc010584c49b4277a88503216b78906ba719e30019c1.css">
+      <link rel="stylesheet" type="text/css" title="dark" id="dark" href="/assets/dark-831218bc9e41aef39ee6a0bae4501195bccafcc13101ae2b9cd20493a6ec04c0.css" disabled="true">
+    
+
+  
+
+</head>
+
+<body>
+  <main>
+    <div class="grid grid-centered">
+      <div class="grid-cell">
+        <nav class="header-nav ">
+  <a href="/" class="header-logo" title="Why does it work?">Why does it work?</a>
+  <ul class="header-links">
+    
+      <li>
+        <a href="/about" title="About me">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-about">
+  <use href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about" xlink:href="/assets/about-ecf154b571ab8034ae00aeed91a3b7ad68db80b46d958753ad6216c919486e88.svg#icon-about"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+    
+      <li>
+        <a href="https://github.com/wang-zhenqi" rel="noreferrer noopener" target="_blank" title="GitHub">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-github">
+  <use href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github" xlink:href="/assets/github-094f81040819f34343ee6ffff0980f17e2807b08b595eaaf66ae3554934fd78d.svg#icon-github"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+      <li>
+        <a href="mailto:dreamingwzq@gmail.com" title="Email">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-email">
+  <use href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email" xlink:href="/assets/email-782473193bf750036fdb90e8daa075508a20509d01854c09f3237c144a3f0601.svg#icon-email"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a href="/feed.xml" rel="noreferrer noopener" target="_blank" title="RSS">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-rss">
+  <use href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss" xlink:href="/assets/rss-541ec5cea9cefd10d2fcfec01888f3f231a8829940249835fa7b7b3a12ae0d0d.svg#icon-rss"></use>
+</svg>
+
+        </a>
+      </li>
+    
+    
+      <li>
+        <a onclick="toggle()" title="Toggle Theme">
+          <svg xmlns="http://www.w3.org/2000/svg" class="icon-theme">
+  <use href="/assets/theme-66869e0bf8dab34bae1c86bda400327b772e0be69e8dc28d3ede896e771320ed.svg#icon-theme" xlink:href="/assets/theme-66869e0bf8dab34bae1c86bda400327b772e0be69e8dc28d3ede896e771320ed.svg#icon-theme"></use>
+</svg>
+
+        </a>
+      </li>
+    
+  </ul>
+</nav>
+
+
+  <ul class="header-tags ">
+    
+    
+      
+        <li><a href="/tag/ai">Ai</a></li>
+    
+      
+        <li><a href="/tag/aws">Aws</a></li>
+    
+      
+        <li><a href="/tag/chatgpt">Chatgpt</a></li>
+    
+      
+        <li><a href="/tag/das-c01">Das-c01</a></li>
+    
+      
+        <li><a href="/tag/dms">Dms</a></li>
+    
+      
+        <li><a href="/tag/docker">Docker</a></li>
+    
+      
+        <li><a href="/tag/ecs">Ecs</a></li>
+    
+      
+        <li><a href="/tag/explanation">Explanation</a></li>
+    
+      
+        <li><a href="/tag/how-to-guide">How-to-guide</a></li>
+    
+      
+        <li><a href="/tag/programming">Programming</a></li>
+    
+      
+        <li>...</li>
+        <li><a href="/tags">Show all</a></li>
+        
+  </ul>
+
+
+        <article class="article ">
+          <header class="article-header">
+            <h1>Python 代码中应避免将函数参数的默认值定义为可变对象</h1>
+            <p>本文主要分析了 Python 的可变对象与不可变对象的区别，赋值操作与对象的引用，以及为什么不建议将函数参数的默认值设定为可变对象</p>
+            <div class="article-list-footer">
+  <span class="article-list-date">
+    November 5, 2024
+  </span>
+  <span class="article-list-divider">-</span>
+  <span class="article-list-minutes">
+    
+    
+      2 minute read
+    
+  </span>
+  <span class="article-list-divider">-</span>
+  <div class="article-list-tags">
+    
+      
+      <a href="/tag/programming" title="See all posts with tag 'programming'">programming</a>
+    
+      
+      <a href="/tag/python" title="See all posts with tag 'python'">python</a>
+    
+      
+      <a href="/tag/explanation" title="See all posts with tag 'explanation'">explanation</a>
+    
+  </div>
+</div>
+          </header>
+
+          <div class="article-content">
+            <h2 id="可变对象与不可变对象">可变对象与不可变对象</h2>
+
+<p>Python 中的可变对象指的是列表（list）、集合（set）和字典（dict）。对应的，不可变对象指的是基本类型（int, float, long, str）以及元组（tuple）。</p>
+
+<p>可变与否主要指的是该对象的值是否能够被更改。例如，对于一个整型数据 <code class="highlighter-rouge">88</code>，它的值在定义之后就固定了；而对于一个列表 <code class="highlighter-rouge">[1, 2, 3]</code>，它的元素是可以被修改的。代码如下：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">a</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+<span class="n">a</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">a</span><span class="p">))</span>
+<span class="c1"># 可以看到以上两个地址是不同的，这说明对于不可变对象，只能生成新的对象，而不能修改
+</span>
+<span class="n">l</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+<span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="k">print</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+<span class="c1"># 可以看到以上两个地址是相同的，更改可变对象的值，并不会生成新对象。
+</span></code></pre></div></div>
+
+<h2 id="赋值还是引用">赋值还是引用？</h2>
+
+<p>在 Python 中，赋值操作 <code class="highlighter-rouge">=</code>本质上是将对象的地址赋给一个标识符，可以理解为给一段内存地址打了个标签，标签名为该标识符。例如 <code class="highlighter-rouge">a = 3</code>这条语句，编译器先分配了一段内存，用数值“3“初始化了一个整型对象，再将这个对象的地址标记为“a”。这个行为其实更像是 C/C++ 语言中的指针操作。</p>
+
+<p>对于不可变对象来说，<code class="highlighter-rouge">l = [1, 2, 3]</code> 也是先用数值1,2,3 在内存中生成了一个列表对象，再将其标记为<code class="highlighter-rouge">l</code>。那么对于之后所有用到 <code class="highlighter-rouge">l</code> 的地方，其实都是拿出了该地址下的这个列表对象，将其替换到对应的位置。</p>
+
+<p>由此可以看出，Python 中的赋值操作传递给标识符的是一个引用，而非实际的值。</p>
+
+<h2 id="引用的传递会造成问题">引用的传递会造成问题</h2>
+
+<p>因为赋值操作传递的是引用，那么在处理 <code class="highlighter-rouge">=</code> 这个操作符的时候就需要明确究竟需要的是什么对象的引用。</p>
+
+<p>在定义函数时，我们很常见地会给一个参数指定一个默认值，以在该参数缺省时使用它。可能会有这样一段代码：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[]):</span>
+  <span class="n">a</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">a</span>
+</code></pre></div></div>
+
+<p>这个函数原本的目的是给一个列表 <code class="highlighter-rouge">a</code> 追加一个值 <code class="highlighter-rouge">x</code>，再返回这个列表。如果没有给定列表，则返回以 <code class="highlighter-rouge">x</code> 为唯一元素的新列表。</p>
+
+<p>乍看起来没什么问题，但仔细观察下会发现：</p>
+
+<ol>
+  <li>变量 <code class="highlighter-rouge">a</code> 是一个可变对象，它的值可以被修改，而不会产生新的对象。</li>
+  <li>变量 <code class="highlighter-rouge">a</code> 是同一个列表的引用，代码中出现了3次<code class="highlighter-rouge">a</code>，它们地址都是同样的。</li>
+  <li>默认值 <code class="highlighter-rouge">[]</code> 是一个列表对象，它本身具有一个地址。</li>
+  <li>当调用函数时，如果省略了 <code class="highlighter-rouge">a</code> ，那么函数中的 <code class="highlighter-rouge">a</code> 指向的就是列表对象 <code class="highlighter-rouge">[]</code> 的地址，自然返回的也是这个地址。</li>
+</ol>
+
+<p>如果有如下代码调用了函数 <code class="highlighter-rouge">fun()</code> ，可以推测一下会发生什么。</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="p">[]):</span>
+  <span class="n">a</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">a</span>
+
+<span class="n">x</span> <span class="o">=</span> <span class="n">fun</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">fun</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>运行代码后会发现，打印 <code class="highlighter-rouge">x</code> 得到了 <code class="highlighter-rouge">[1]</code>，打印 <code class="highlighter-rouge">y</code> 得到了 <code class="highlighter-rouge">[1, 2]</code> ，与期望不符。甚至再接着调用 <code class="highlighter-rouge">fun(3)</code> 、 <code class="highlighter-rouge">fun(4)</code> 会发现，得到的会是不断加长的列表。</p>
+
+<p>这就是传递可变对象的引用可能造成的问题。因为这几次的调用都省略了参数 <code class="highlighter-rouge">a</code> ，所以函数中遇到的 <code class="highlighter-rouge">a</code> 其实都指向的是同一个列表对象的引用。最开始是一个空列表，每一次调用都是在同一个列表后追加一个值。而函数的返回值仍然是该列表的引用，因此不论 <code class="highlighter-rouge">x</code> 还是 <code class="highlighter-rouge">y</code> ，它们实际上都是指的这一个列表对象。</p>
+
+<h2 id="不要将可变对象作为参数默认值">不要将可变对象作为参数默认值</h2>
+
+<p>如上面的代码示例，函数参数的默认值如果是一个可变对象，会造成很隐蔽的问题。也因此，很多 IDE 以及代码审查工具会将这一写法看做是一种“坏味道”甚至是缺陷，会明显地标注出来，有的还能一键修改。我们在写代码时应注意避免这种定义函数的写法，而应改为下面的方式：</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">a</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">a</span><span class="p">.</span><span class="n">append</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">a</span>
+</code></pre></div></div>
+
+<p>这样，<code class="highlighter-rouge">a</code>所指向的引用要么是从外部传进来的，要么是函数内部新定义的空列表；返回值也不再会指向同一个对象。因此对于列表的修改也就不会互相影响了。</p>
+
+<h2 id="延伸出的思考">延伸出的思考</h2>
+
+<p>由于 Python 中“赋值=引用”，以及可变对象在值发生改变时不会生成新对象的特点，我们在写代码时应该多留心：我们希望函数接收的参数是什么样的？对于它的修改应不应该反映到函数外部？函数的返回值应该如何使用？它会不会被其他地方引用到，进而被其他代码所修改？</p>
+
+<p>在 <code class="highlighter-rouge">pandas</code> 库中，对于 <code class="highlighter-rouge">DataFrame</code> 的修改都会返回一个新的 <code class="highlighter-rouge">DataFrame</code>。这也许是一种比较安全的方式，但相对也会更多地占用空间。在自己编写的代码中，要对这种方式做一下权衡。</p>
+
+<p>总之，在编写 Python 代码时，要对这种特性格外注意。</p>
+
+          </div>
+          <div class="article-share">
+            
+            
+            <a href="https://twitter.com/home?status=Python+%E4%BB%A3%E7%A0%81%E4%B8%AD%E5%BA%94%E9%81%BF%E5%85%8D%E5%B0%86%E5%87%BD%E6%95%B0%E5%8F%82%E6%95%B0%25...%20-%20https://wang-zhenqi.github.io/posts/python-%E4%BB%A3%E7%A0%81%E4%B8%AD%E5%BA%94%E9%81%BF%E5%85%8D%E5%B0%86%E5%87%BD%E6%95%B0%E5%8F%82%E6%95%B0%E7%9A%84%E9%BB%98%E8%AE%A4%E5%80%BC%E5%AE%9A%E4%B9%89%E4%B8%BA%E5%8F%AF%E5%8F%98%E5%AF%B9%E8%B1%A1" title="Share on Twitter" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M492 109.5c-17.4 7.7-36 12.9-55.6 15.3 20-12 35.4-31 42.6-53.6 -18.7 11.1-39.4 19.2-61.5 23.5C399.8 75.8 374.6 64 346.8 64c-53.5 0-96.8 43.4-96.8 96.9 0 7.6 0.8 15 2.5 22.1 -80.5-4-151.9-42.6-199.6-101.3 -8.3 14.3-13.1 31-13.1 48.7 0 33.6 17.2 63.3 43.2 80.7C67 210.7 52 206.3 39 199c0 0.4 0 0.8 0 1.2 0 47 33.4 86.1 77.7 95 -8.1 2.2-16.7 3.4-25.5 3.4 -6.2 0-12.3-0.6-18.2-1.8 12.3 38.5 48.1 66.5 90.5 67.3 -33.1 26-74.9 41.5-120.3 41.5 -7.8 0-15.5-0.5-23.1-1.4C62.8 432 113.7 448 168.3 448 346.6 448 444 300.3 444 172.2c0-4.2-0.1-8.4-0.3-12.5C462.6 146 479 129 492 109.5z"/></svg>
+            </a>
+            <a href="https://www.facebook.com/sharer/sharer.php?u=https://wang-zhenqi.github.io/posts/python-%E4%BB%A3%E7%A0%81%E4%B8%AD%E5%BA%94%E9%81%BF%E5%85%8D%E5%B0%86%E5%87%BD%E6%95%B0%E5%8F%82%E6%95%B0%E7%9A%84%E9%BB%98%E8%AE%A4%E5%80%BC%E5%AE%9A%E4%B9%89%E4%B8%BA%E5%8F%AF%E5%8F%98%E5%AF%B9%E8%B1%A1" title="Share on Facebook" rel="noreferrer noopener" target="_blank">
+              <svg viewBox="0 0 512 512"><path d="M288 192v-38.1c0-17.2 3.8-25.9 30.5-25.9H352V64h-55.9c-68.5 0-91.1 31.4-91.1 85.3V192h-45v64h45v192h83V256h56.4l7.6-64H288z"/></svg>
+            </a>
+          </div>
+
+          
+        </article>
+        <footer class="footer ">
+  <p>
+    Chalk is a high quality, completely customizable, performant and 100% free
+    blog template for Jekyll built by
+    <a href="https://chalk.nielsenramon.com/" title="About me">Nielsen Ramon</a>. Download it <a href="https://github.com/nielsenramon/chalk" rel="noreferrer noopener" target="_blank" title="Download Chalk">here</a>.
+  </p>
+</footer>
+
+      </div>
+    </div>
+  </main>
+  
+
+<script src="/assets/vendor-3ee2c63bbac916f96cd7f90e83ab767f058ead1301444c9966f5156911c8be7f.js" type="text/javascript"></script>
+
+
+  <script src="/assets/webfonts-96493456d319d1bf419afdf8701552d4d486fee6afd304897d4fd81eb4e0cc0b.js" type="text/javascript"></script>
+
+
+
+
+<script src="/assets/application-cfde13ac81ddaf4351b2e739603e2baf688d0fcc9aba613fe62bbb1c7b037fb9.js" type="text/javascript"></script>
+
+
+  <script src="/assets/themetoggle-df0d3d73164dc26dffbd630182ae4d0dfa7bee6b694a2b5d565d73595b582bbf.js" type="text/javascript"></script>
+
+</body>
+</html>

@@ -1,4 +1,0 @@
----
-slug: ecs
-name: ecs
----
