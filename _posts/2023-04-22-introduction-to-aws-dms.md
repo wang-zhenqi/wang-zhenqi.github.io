@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title: "AWS 数据库迁移服务简介"
 description: "本文介绍了 AWS 数据库迁移服务（DMS）的基础知识，通过本文，读者可以初步了解该服务的功能、限制、使用方法"
 tags: [aws, dms, explanation]

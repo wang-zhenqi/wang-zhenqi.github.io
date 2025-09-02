@@ -1,5 +1,5 @@
 ---
-layout: post
+layout: article
 title: "在 AWS ECS 上部署 Docker 容器"
 description: "本文介绍了在 AWS ECS 服务上部署 Docker 容器的方法，通过阅读本文，读者可以了解到基本的操作流程以及一些注意事项"
 tags: [aws, ecs, docker, how-to-guide]
