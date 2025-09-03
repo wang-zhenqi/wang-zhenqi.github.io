@@ -1,6 +1,6 @@
 # Welcome to my site!
 
-Here is a little space of my writing collections. I'll write and share some articles, short essays and experiances about my working and learning processes.
+Here is a little space of my writing collections. I'll write and share some articles, short essays and experiences about my working and learning processes.
 
 Most of the content would be in English or bilingual, because software engineering has a lot of English resources out there which I can reference or internalize in convenience. It can save me some time.
 
