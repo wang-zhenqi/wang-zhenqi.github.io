@@ -2,7 +2,7 @@
 layout: article
 title: Git 提交信息填错了怎么办
 subtitle: 一文讲透 Author 与 Committer 的区别及修复方案
-description: 你是否曾因为配置错误的 `user.name` 或 `user.email`，导致 GitHub 上的提交头像不显示、贡献统计缺失？本文将带你深入理解 Git 中 **Author** 与 **Committer** 的核心区别，并提供一套基于官方推荐工具 `git-filter-repo` 的完整修复方案，帮你优雅地重写历史，找回属于你的代码荣誉。
+description: 你是否曾因为配置错误的 user.name 或 user.email，导致 GitHub 上的提交者显示不正常？本文将带你深入理解 Git 中 Author 与 Committer 的核心区别，并提供一套基于官方推荐工具 `git-filter-repo` 的完整修复方案，帮你优雅地重写历史。
 tags:
   - explanation
   - git
